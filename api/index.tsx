@@ -3,7 +3,7 @@ import { devtools } from 'frog/dev'
 import { serveStatic } from 'frog/serve-static'
 // import { neynar } from 'frog/hubs'
 import { handle } from 'frog/vercel'
-import { moralisApiKey, moralisApiKey3, variable } from '../utils/moralis.js'
+import { moralisApiKey, variable } from '../utils/moralis.js'
 
 // Uncomment to use Edge Runtime.
 // export const config = {
@@ -21,8 +21,6 @@ app.frame('/', (c) => {
   // const { buttonValue, inputText, status } = c
   console.log({ variable })
   console.log({moralisApiKey})
-  // console.log({moralisApiKey2})
-  console.log({moralisApiKey3})
   return c.res({
     image: (
       <div
@@ -57,8 +55,7 @@ app.frame('/', (c) => {
           {variable}
 
           {moralisApiKey}
-          {moralisApiKey2}
-          {moralisApiKey3}
+          
         </div>
       </div>
     ),

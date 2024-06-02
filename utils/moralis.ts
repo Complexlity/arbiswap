@@ -1,13 +1,13 @@
 import Moralis from "moralis";
 import { EvmChain } from "@moralisweb3/common-evm-utils";
+import { config } from "dotenv"
+
+config()
 
 export const variable = "bun bun"
 export const moralisApiKey = process.env.MORALIS_API_KEY
-// export const moralisApiKey2 = Bun.env.MORALIS_API_KEY
-export const moralisApiKey3 = process.env.MORALIS_API_KEY
+
 console.log({moralisApiKey})
-// console.log({moralisApiKey2})
-console.log({moralisApiKey3})
 const runApp = async () => {
   await Moralis.start({
     apiKey: moralisApiKey,
