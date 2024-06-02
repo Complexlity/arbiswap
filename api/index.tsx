@@ -43,7 +43,8 @@ export const app = new Frog<{ State: State }>({
 app.frame('/', async (c) => {
   
   return c.res({
-    image: "https://i.postimg.cc/Kv3j32RY/start.png",
+    // image: "https://i.postimg.cc/Kv3j32RY/start.png",
+    image: "https://i.postimg.cc/CxytCWs7/start.png",
     intents: [
       <TextInput placeholder="Enter Contract Address e.g: 0xD77B108d4f6cefaa0Cae9506A934e825BEccA46E" />,
       <Button action="/token">Go</Button>,
