@@ -1,9 +1,25 @@
 import { EvmChain } from "@moralisweb3/common-evm-utils";
 import Moralis from "moralis";
 import { config } from "dotenv"
-import fs from 'fs'
 
 config()
+
+export interface TokenDetails {
+  tokenName:               string;
+  tokenSymbol:             string;
+  tokenLogo:               string;
+  tokenDecimals:           string;
+  nativePrice:             string;
+  usdPrice:                number;
+  usdPriceFormatted:       string;
+  exchangeName:            string;
+  exchangeAddress:         string;
+  tokenAddress:            string;
+  priceLastChangedAtBlock: string;
+  possibleSpam:            boolean;
+  verifiedContract:        boolean;
+  "24hrPercentChange":     string;
+}
 
 
 const chain = EvmChain.ARBITRUM;
@@ -36,7 +52,7 @@ export function formatCurrency(
 }
 
 export async function getTokenPrice(
-  contractAddress = "0x13A7DeDb7169a17bE92B0E3C7C2315B46f4772B3"
+  contractAddress: string
 ) {
   const moralisApiKey = process.env.MORALIS_API_KEY;
   if (!moralisApiKey) {
@@ -50,7 +66,8 @@ export async function getTokenPrice(
       // ...and any other configuration
     });
   }
-
+try {
+  
   const response = await Moralis.EvmApi.token.getTokenPrice({
     chain,
     include: "percent_change",
@@ -59,11 +76,14 @@ export async function getTokenPrice(
 
   const priceData = response.result;
   // fs.writeFileSync('token.json', JSON.stringify(priceData))
-  return priceData;
+  return priceData as unknown as TokenDetails;
+} catch (error) {
+  return null
+}
 }
 
-export async function convertTokenAmountToUSD(numberOfTokens: number) {
-  const tokenPriceData = await getTokenPrice();
+export function convertTokenAmountToUSD(numberOfTokens: number, tokenPriceData: any) {
+  if(!tokenPriceData) return 0
   const amount = numberOfTokens * tokenPriceData.usdPrice;
   return amount;
 }

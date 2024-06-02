@@ -6,7 +6,7 @@ import { devtools } from 'frog/dev'
 import { serveStatic } from 'frog/serve-static'
 // import { neynar } from 'frog/hubs'
 import { handle } from 'frog/vercel'
-import { convertTokenAmountToUSD, formatCurrency, getTokenPrice  } from '../utils/moralis.js'
+import { TokenDetails, convertTokenAmountToUSD, formatCurrency, getTokenPrice  } from '../utils/moralis.js'
 import { imageUrls } from "../utils/images.js";
 
 
@@ -64,8 +64,35 @@ app.frame('/', async (c) => {
     ),
     intents: [
       <TextInput placeholder="Enter contract address" />,
-      <Button action="/convert">Go</Button>,
+      <Button action="/token">Go</Button>,
     ],
+  })
+})
+
+app.frame('/token', async (c) => {
+  const {inputText: ca} = c
+  let token = null
+  let usd = 42
+  if(ca){
+token = await getTokenPrice(ca)
+usd= convertTokenAmountToUSD(100000, token) ?? '42'
+  }
+  console.log({token, usd})
+  return c.res({
+    image: token ? 
+    <ConvertImage token={token} usd={`${usd}`}  />
+    : 
+    <ErrorImage />,
+    intents:  token ?
+    [
+      <TextInput placeholder='Enter amount in eth' />
+,      <Button action="/convert">Proceed</Button>,
+      <Button.Reset>Back</Button.Reset>
+    ]
+    : [
+      <TextInput placeholder='Enter amount in eth'/>,
+      <Button>Amount</Button>
+    ]
   })
 })
 
@@ -78,8 +105,8 @@ app.frame("/convert", async (c) => {
     token = "0";
     usd = "0";
   } else {
-    let tokenPriceData = await getTokenPrice();
-    const amount = inputTextAsNumber * tokenPriceData.usdPrice;
+    let tokenPriceData = await getTokenPrice(inputText!);
+    const amount = inputTextAsNumber * tokenPriceData!.usdPrice;
     token = formatCurrency(inputTextAsNumber);
     usd = formatCurrency(amount, 11, 4);
   }
@@ -96,10 +123,45 @@ app.frame("/convert", async (c) => {
 });
 
 
+function ErrorImage(){
+  return (
+    <div
+        style={{
+          alignItems: 'center',
+          background: "black",
+          backgroundSize: '100% 100%',
+          display: 'flex',
+          flexDirection: 'column',
+          flexWrap: 'nowrap',
+          height: '100%',
+          justifyContent: 'center',
+          textAlign: 'center',
+          width: '100%',
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            gap: "1rem",
+            color: 'white',
+            fontSize: 60,
+            fontStyle: 'normal',
+            letterSpacing: '-0.025em',
+            lineHeight: 1.4,
+            marginTop: 30,
+            padding: '0 120px',
+            whiteSpace: 'pre-wrap',
+          }}
+        >
+          Token not found
+        </div>
+      </div>
+  )
+}
 
-function ConvertImage({ token, usd }: { token: string; usd: string }) {
-  usd = usd ?? "42";
-  token = token ?? "42069";
+
+function ConvertImage({ token, usd }: { token: TokenDetails | null; usd: string }) {
+  
   return (
     <div
       style={{
@@ -134,10 +196,10 @@ function ConvertImage({ token, usd }: { token: string; usd: string }) {
       <div tw={"flex flex-col text-8xl"}>
         <div tw={"flex justify-between items-center  mb-6"}>
           <div tw="flex flex-col items-center w-[20%]">
-            <img src={`${imageUrls.token}`} height={150} width={150} />
+            <img src={`${token.tokenLogo}`} height={150} width={150} />
             <span tw={"text-4xl"}>token</span>
           </div>
-          <span>{token}</span>
+          <span>{token.tokenName}</span>
         </div>
         <div tw={"flex justify-between items-center"}>
           <div tw="flex flex-col items-center w-[20%]">
@@ -151,7 +213,7 @@ function ConvertImage({ token, usd }: { token: string; usd: string }) {
   );
 }
 
-async function PreviewImage({ amountInUsd, token, amountInEth }: { amountInEth: string, amountInUsd: string, token: any }) {
+async function PreviewImage({ amountInUsd, token, amountInEth }: { amountInEth: string, amountInUsd: string, token: TokenDetails }) {
 
   return (
     <div
