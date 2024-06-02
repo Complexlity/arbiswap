@@ -3,7 +3,9 @@ import { devtools } from 'frog/dev'
 import { serveStatic } from 'frog/serve-static'
 // import { neynar } from 'frog/hubs'
 import { handle } from 'frog/vercel'
-import { moralisApiKey, variable } from '../utils/moralis.js'
+import { convertTokenAmountToUSD, formatCurrency, getTokenPrice  } from '../utils/moralis.js'
+
+
 
 // Uncomment to use Edge Runtime.
 // export const config = {
@@ -17,10 +19,10 @@ export const app = new Frog({
   // hub: neynar({ apiKey: 'NEYNAR_FROG_FM' })
 })
 
-app.frame('/', (c) => {
+app.frame('/', async (c) => {
   // const { buttonValue, inputText, status } = c
-  console.log({ variable })
-  console.log({moralisApiKey})
+  const usdPrice =await convertTokenAmountToUSD(100000)
+  console.log({usdPrice})
   return c.res({
     image: (
       <div
@@ -52,10 +54,8 @@ app.frame('/', (c) => {
           }}
         >
           Welcome {" "}
-          {variable}
+          {usdPrice}
 
-          {moralisApiKey}
-          
         </div>
       </div>
     ),
