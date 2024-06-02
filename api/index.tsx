@@ -3,7 +3,7 @@ import { devtools } from 'frog/dev'
 import { serveStatic } from 'frog/serve-static'
 // import { neynar } from 'frog/hubs'
 import { handle } from 'frog/vercel'
-import { variable } from '../utils/moralis.js'
+import { moralisApiKey, variable } from '../utils/moralis.js'
 
 // Uncomment to use Edge Runtime.
 // export const config = {
@@ -38,6 +38,8 @@ app.frame('/', (c) => {
       >
         <div
           style={{
+            display: "flex",
+            gap: "1rem",
             color: 'white',
             fontSize: 60,
             fontStyle: 'normal',
@@ -50,6 +52,8 @@ app.frame('/', (c) => {
         >
           Welcome {" "}
           {variable}
+
+          {moralisApiKey}
         </div>
       </div>
     ),

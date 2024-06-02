@@ -11,7 +11,8 @@
     "@moralisweb3/common-evm-utils": "^2.26.2",
     "frog": "latest",
     "hono": "^4",
-    "moralis": "^2.26.2"
+    "moralis": "^2.26.2",
+    "viem": "^2.13.3"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",
