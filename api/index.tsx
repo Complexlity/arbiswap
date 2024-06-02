@@ -43,42 +43,9 @@ export const app = new Frog<{ State: State }>({
 app.frame('/', async (c) => {
   
   return c.res({
-    image: (
-      <div
-        style={{
-          alignItems: 'center',
-          background: "black",
-          backgroundSize: '100% 100%',
-          display: 'flex',
-          flexDirection: 'column',
-          flexWrap: 'nowrap',
-          height: '100%',
-          justifyContent: 'center',
-          textAlign: 'center',
-          width: '100%',
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            gap: "1rem",
-            color: 'white',
-            fontSize: 60,
-            fontStyle: 'normal',
-            letterSpacing: '-0.025em',
-            lineHeight: 1.4,
-            marginTop: 30,
-            padding: '0 120px',
-            whiteSpace: 'pre-wrap',
-          }}
-        >
-          Welcome Home {" "}
-
-        </div>
-      </div>
-    ),
+    image: "https://i.postimg.cc/Kv3j32RY/start.png",
     intents: [
-      <TextInput placeholder="Enter contract address" />,
+      <TextInput placeholder="Enter Contract Address e.g: 0xD77B108d4f6cefaa0Cae9506A934e825BEccA46E" />,
       <Button action="/token">Go</Button>,
     ],
   })
@@ -88,8 +55,8 @@ app.frame('/', async (c) => {
 async function handleToken(c: FrameContext) {
   const {inputText} = c
   let ca = c.req.param('ca')
-  if(!ca) ca = inputText
-  console.log({ca})
+  if(!ca) ca = inputText ?? "0xD77B108d4f6cefaa0Cae9506A934e825BEccA46E"
+  
   let token = null
   let usd = 42
   if(ca){
