@@ -1,3 +1,6 @@
+
+/** @jsxImportSource frog/jsx */
+
 import { Button, Frog, TextInput } from 'frog'
 import { devtools } from 'frog/dev'
 import { serveStatic } from 'frog/serve-static'
