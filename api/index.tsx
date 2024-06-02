@@ -85,7 +85,8 @@ app.frame("/convert", async (c) => {
   }
 
   return c.res({
-    image: <ConvertImage token={token} usd={usd} />,
+    // image: <ConvertImage token={token} usd={usd} />,
+    image: <PreviewImage token={token} amountInUsd={usd}  amountInEth={"0.001"}/>,
     intents: [
       <TextInput placeholder="token amount e.g 10000" />,
       <Button>Convert</Button>,
@@ -149,6 +150,107 @@ function ConvertImage({ token, usd }: { token: string; usd: string }) {
     </div>
   );
 }
+
+async function PreviewImage({ amountInUsd, token, amountInEth }: { amountInEth: string, amountInUsd: string, token: any }) {
+
+  return (
+    <div
+      style={{
+        height: "100%",
+        width: "100%",
+        display: "flex",
+        flexDirection: "column",
+        fontSize: 32,
+        fontWeight: 600,
+        padding: "10px 50px",
+      }}
+      tw="bg-slate-900 text-white"
+    >
+      <span tw="text-6xl my-4">Preview Transaction </span>
+      <div
+        tw="flex items-center  mx-auto justify-between max-w-4/5 w-full flex-col"
+        style={{
+          gap: "10px",
+        }}
+      >
+        <div tw="flex justify-between py-2  w-full">
+          <span tw="text-center text-gray-500 flex">From</span>
+          <span tw="text-center text-gray-500">To</span>
+        </div>
+        <div tw="flex justify-between py-2  w-full">
+          <div tw="rounded-full flex w-[100px] h-[100px] overflow-hidden ">
+            <img
+              src="https://i.imgur.com/mt3nbeI.jpg"
+              // src={viewerData?.userImageUrl}
+              width={"100%"}
+              height={"100%"}
+              style={{
+                objectFit: "cover",
+              }}
+            />
+          </div>
+          <span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="100"
+              height="100"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M18 8L22 12L18 16" />
+              <path d="M2 12H22" />
+            </svg>{" "}
+          </span>
+          <div tw="rounded-full flex w-[100px] h-[100px] overflow-hidden ">
+            <img
+              src="https://i.imgur.com/mt3nbeI.jpg"
+              // src={userData.userImageUrl}
+              width={"100%"}
+              height={"100%"}
+              style={{
+                objectFit: "cover",
+              }}
+            />
+          </div>
+        </div>
+
+        <div tw="flex w-full justify-between">
+          <span>You Complexlity</span>
+          <span>@weezel</span>
+        </div>
+      </div>
+      <hr tw="py-[1px] w-full bg-gray-800" />
+
+      <div tw="flex justify-between py-2">
+        <div tw="text-gray-400">Token</div>
+        <div tw="flex text-4xl items-center" style={{ gap: "4px" }}>
+          <img src={imageUrls.toshiIcon} width={50} height={50} />
+          <span>{"Token"}</span>
+        </div>
+      </div>
+      <div tw="flex justify-between py-2">
+        <span tw="text-gray-400">Amount</span>
+        <span tw="text-4xl flex" style={{gap:"10px"}}>
+          <span>{amountInEth}</span>
+          <span>(${amountInUsd})</span>
+        </span>
+      </div>
+
+      <div tw="flex justify-between py-2 items-center">
+        <span tw="text-gray-400">Chain</span>
+        <span style={{ gap: "4px" }} tw="flex items-center">
+          <img src="https://i.ibb.co/kBzGkrL/base.png" width={50} height={50} />
+          <span>Base</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
 
 // @ts-ignore
 const isEdgeFunction = typeof EdgeFunction !== 'undefined'
