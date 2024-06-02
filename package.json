@@ -8,8 +8,10 @@
     "deploy": "vercel"
   },
   "dependencies": {
+    "@moralisweb3/common-evm-utils": "^2.26.2",
     "frog": "latest",
-    "hono": "^4"
+    "hono": "^4",
+    "moralis": "^2.26.2"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",
