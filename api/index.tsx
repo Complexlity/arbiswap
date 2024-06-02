@@ -13,7 +13,7 @@ import { imageUrls } from "../utils/images.js";
 import { createPublicClient, http } from "viem";
 import { arbitrum } from "viem/chains";
 import fs from 'fs'
-import { ZeroxSwapQuoteOrder } from '../utils/types.js';
+import { ZeroxSwapPriceData, ZeroxSwapQuoteOrder } from '../utils/types.js';
 
 // Uncomment to use Edge Runtime.
 // export const config = {
@@ -24,10 +24,18 @@ const arbitrumClient = createPublicClient({
   transport: http(),
 });
 
+type State = {
+  order: any
+}
 
-export const app = new Frog({
+
+export const app = new Frog<{ State: State }>({
   assetsPath: '/',
   basePath: '/api',
+  initialState: {
+    order: {
+    }
+  }
   // Supply a Hub to enable frame verification.
   // hub: neynar({ apiKey: 'NEYNAR_FROG_FM' })
 })
@@ -104,7 +112,8 @@ console.log(token?.tokenLogo)
     ]
     : [
       <TextInput placeholder='Enter contract address'/>,
-      <Button>Retry</Button>
+      <Button>Retry</Button>,
+      <Button.Reset>Home</Button.Reset>
     ]
   })
 }
@@ -117,7 +126,7 @@ app.frame('/confirm/:ca', async (c) => {
   
   const ca = c.req.param("ca")
   if(!ca) throw new Error("Contract address missing")
-  let { inputText: ethAmount } = c;
+  let { inputText: ethAmount, deriveState } = c;
   let ethAmountAsNumber = Number(ethAmount);
   if (isNaN(ethAmountAsNumber) || ethAmountAsNumber == 0 || !ethAmount) {
     ethAmount = "0.01"
@@ -127,6 +136,7 @@ app.frame('/confirm/:ca', async (c) => {
   console.log({ethAmount})
 
   const baseUrl = `https://arbitrum.api.0x.org/swap/v1/quote?`
+  const baseUrl2 = `https://arbitrum.api.0x.org/swap/v1/price?`
   const eth = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
   let tokenPriceData = await getTokenPrice(ca);
   
@@ -138,27 +148,98 @@ app.frame('/confirm/:ca', async (c) => {
     feeRecipient: "0x8ff47879d9eE072b593604b8b3009577Ff7d6809",
     buyTokenPercentageFee: "0.01",
   }).toString();
+  const params2 = new URLSearchParams({
+    buyToken: ca,
+    sellToken: eth,
+    sellAmount: parseEther(ethAmount).toString(),
+    // feeRecipient: "0x8ff47879d9eE072b593604b8b3009577Ff7d6809",
+    // buyTokenPercentageFee: "0.01",
+  }).toString();
 
 
   const res = await fetch(baseUrl + params, {
     headers: { "0x-api-key": process.env.ZEROX_API_KEY || "" },
   });
+  const res2 = await fetch(baseUrl2 + params2, {
+    headers: { "0x-api-key": process.env.ZEROX_API_KEY || "" },
+  });
 
-  const order = (await res.json()) as ZeroxSwapQuoteOrder
-  const tokenAmountReceived = `${Number(order.price) * Number(ethAmount)}`
+  
+
+  
+  const priceData = (await res2.json()) as ZeroxSwapPriceData
+  
+  const tokenAmountReceived = `${Number(priceData.price) * Number(ethAmount)}`
   const ethAmountInUsd = getEthPrice(tokenPriceData?.nativePrice!, tokenPriceData?.usdPrice!
     , ethAmountAsNumber
   )
 
 
+
+
   return c.res({
+    action: "/finish",
     image: <PreviewImage ethInUsd={ethAmountInUsd} token={tokenPriceData!} amountInEth={ethAmount} amountReceived={tokenAmountReceived} />,
     intents: [
-    <Button>Confirm</Button>,
+    <Button.Transaction target={`/tx/${ca}/${ethAmount}`}>Confirm</Button.Transaction>,
       <Button.Reset>Back</Button.Reset>
   ]
   })
 })
+
+app.transaction("/tx/:ca/:amount", async (c) => {
+const ca = c.req.param('ca')
+const amount = c.req.param('amount')
+
+if(!ca || !amount) throw new Error('Missing Contract address or Amount')
+  // prettier-ignore
+ 
+
+const baseUrl = `https://arbitrum.api.0x.org/swap/v1/quote?`
+
+const eth = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+
+
+const params = new URLSearchParams({
+  buyToken: ca,
+  sellToken: eth,
+  sellAmount: parseEther(amount).toString(),
+  feeRecipient: "0x8ff47879d9eE072b593604b8b3009577Ff7d6809",
+  buyTokenPercentageFee: "0.01",
+}).toString();
+
+
+const res = await fetch(baseUrl + params, {
+  headers: { "0x-api-key": process.env.ZEROX_API_KEY || "" },
+});
+
+
+const order = (await res.json()) as ZeroxSwapQuoteOrder
+
+
+  return c.send({
+    chainId: `eip155:8453`,
+    to: order.to,
+    data: order.data,
+    value: BigInt(order.value),
+  });
+});
+
+
+
+app.frame("/finish", async (c) => {
+  const { transactionId } = c;
+
+  return c.res({
+    image: "https://pbs.twimg.com/media/F4M9IOlWwAEgTDf.jpg",
+    intents: [
+      <Button.Link href={`https://basescan.org/tx/${transactionId}`}>
+        View Transaction
+      </Button.Link>,
+      <Button.Reset>Home</Button.Reset>,
+    ],
+  });
+});
 
 function PreviewImage({ amountReceived, token, amountInEth, ethInUsd }: { ethInUsd: number, amountInEth: string, amountReceived: string, token: TokenDetails }) {
 
