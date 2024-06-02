@@ -58,7 +58,7 @@ export async function getTokenPrice(
   });
 
   const priceData = response.result;
-  fs.writeFileSync('token.json', JSON.stringify(priceData))
+  // fs.writeFileSync('token.json', JSON.stringify(priceData))
   return priceData;
 }
 
