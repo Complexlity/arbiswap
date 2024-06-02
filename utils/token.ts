@@ -68,6 +68,7 @@ export async function getTokenPrice(
   }
 try {
   
+  console.log({contractAddress})
   const response = await Moralis.EvmApi.token.getTokenPrice({
     chain,
     include: "percent_change",
@@ -78,6 +79,7 @@ try {
   // fs.writeFileSync('token.json', JSON.stringify(priceData))
   return priceData as unknown as TokenDetails;
 } catch (error) {
+  console.log({error})
   return null
 }
 }
@@ -86,5 +88,11 @@ export function convertTokenAmountToUSD(numberOfTokens: number, tokenPriceData: 
   if(!tokenPriceData) return 0
   const amount = numberOfTokens * tokenPriceData.usdPrice;
   return amount;
+}
+
+export function getEthPrice(nativePrice: string, usdPrice: number, ethAmount: number){
+  const nativePriceInETH = BigInt(nativePrice) / BigInt("1000000000000000000");
+  const ethAmountInUsd = (usdPrice / Number(nativePriceInETH)) * 1e18 * ethAmount
+  return ethAmountInUsd
 }
 

@@ -1,0 +1,16 @@
+{
+  "tokenName": "Ninja Squad Token",
+  "tokenSymbol": "NST",
+  "tokenLogo": "https://logo.moralis.io/0xa4b1_0x88a269df8fe7f53e590c561954c52fccc8ec0cfb_cb46c752aa974e679f060026b53f77d3",
+  "tokenDecimals": "18",
+  "nativePrice": "1031929720801306000000000000000000",
+  "usdPrice": 3.907223311282702,
+  "usdPriceFormatted": "3.907223311282702167",
+  "exchangeName": "Uniswap v3",
+  "exchangeAddress": "0x1f98431c8ad98523631ae4a59f267346ea31f984",
+  "tokenAddress": "0x88a269df8fe7f53e590c561954c52fccc8ec0cfb",
+  "priceLastChangedAtBlock": "217644514",
+  "possibleSpam": false,
+  "verifiedContract": true,
+  "24hrPercentChange": "19.0900702893178"
+}
