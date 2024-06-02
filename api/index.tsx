@@ -46,7 +46,7 @@ app.frame('/', async (c) => {
     // image: "https://i.postimg.cc/Kv3j32RY/start.png",
     image: "https://i.postimg.cc/CxytCWs7/start.png",
     intents: [
-      <TextInput placeholder="Enter Contract Address e.g: 0xD77B...ccA46E" />,
+      <TextInput placeholder="Enter Contract Address e.g: 0x.." />,
       <Button action="/token">Go</Button>,
     ],
   })
