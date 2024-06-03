@@ -53,40 +53,43 @@ app.frame('/', async (c) => {
   });
 })
 
+async function handleTokenDetails(c,  ca: string) {
+  let token = null;
+  let usd = 42;
+  if (ca) {
+    token = await getTokenPrice(ca);
+    usd = convertTokenAmountToUSD(100000, token) ?? "42";
+  }
+
+  console.log(token?.tokenLogo);
+  // console.log({token, usd})
+  return c.res({
+    image: token ? <TokenCardDetails token={token} /> : <ErrorImage />,
+    intents: token
+      ? [
+          <TextInput placeholder="Enter amount in eth" />,
+          <Button action={`/confirm/${ca}`}>Proceed</Button>,
+          <Button.Reset>Back</Button.Reset>,
+        ]
+      : [
+          <TextInput placeholder="Enter contract address" />,
+          <Button>Retry</Button>,
+          <Button.Reset>Home</Button.Reset>,
+        ],
+  });
+
+}
 
 
 app.frame('/token', async (c) => {
   const {inputText} = c
   let ca = inputText ?? "0xD77B108d4f6cefaa0Cae9506A934e825BEccA46E"
-
-  let token = null
-  let usd = 42
-  if(ca){
-token = await getTokenPrice(ca)
-usd= convertTokenAmountToUSD(100000, token) ?? '42'
-  }
-
-
-
-console.log(token?.tokenLogo)
-  // console.log({token, usd})
-  return c.res({
-    image: token ?
-      <TokenCardDetails token={token} />
-    :
-    <ErrorImage />,
-    intents:  token ?
-    [
-      <TextInput placeholder='Enter amount in eth' />
-,      <Button action={`/confirm/${ca}`}>Proceed</Button>,
-      <Button.Reset>Back</Button.Reset>
-    ]
-    : [
-      <TextInput placeholder='Enter contract address'/>,
-      <Button>Retry</Button>,
-      <Button.Reset>Home</Button.Reset>
-    ]
-  })
+  return handleTokenDetails(c, ca)
+}
+)
+app.frame('/exact_token/:ca', async (c) => {
+  let ca = c.req.param("ca")
+  return handleTokenDetails(c, ca)
 }
 )
 
@@ -94,7 +97,7 @@ app.frame('/confirm/:ca', async (c) => {
 
   const ca = c.req.param("ca")
   if(!ca) throw new Error("Contract address missing")
-  let { inputText: ethAmount, deriveState } = c;
+  let { inputText: ethAmount } = c;
   let ethAmountAsNumber = Number(ethAmount);
   if (isNaN(ethAmountAsNumber) || ethAmountAsNumber == 0 || !ethAmount) {
     ethAmount = "0.01"
@@ -150,7 +153,7 @@ app.frame('/confirm/:ca', async (c) => {
     image: <PreviewImage ethInUsd={ethAmountInUsd} token={tokenPriceData!} amountInEth={ethAmount} amountReceived={tokenAmountReceived} />,
     intents: [
     <Button.Transaction target={`/tx/${ca}/${ethAmount}`}>Confirm</Button.Transaction>,
-      <Button.Reset>Back</Button.Reset>
+      <Button action={`/exact_token/${ca}`}>Back</Button>
   ]
   })
 })
