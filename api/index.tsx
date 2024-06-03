@@ -419,6 +419,9 @@ function TokenCardDetails({
 }: {
   token: TokenDetails | null;
   }) {
+
+  const percentChange = Number(token?.["24hrPercentChange"]);
+
   return (
     <div
       tw="flex w-full h-full flex-col "
@@ -441,11 +444,7 @@ function TokenCardDetails({
         </div>
         <div tw="flex w-1/2 items-center ">
           <div tw="flex mx-auto w-[26rem]  content-center rounded-full overflow-hidden">
-            <img
-              src={token?.tokenLogo}
-              tw="object-cover w-full"
-              width="100%"
-            />
+            <img src={token?.tokenLogo} tw="object-cover w-full" width="100%" />
           </div>
         </div>
       </div>
@@ -460,35 +459,55 @@ function TokenCardDetails({
             <span tw="text-5xl font-bold">
               {token?.usdPrice.toFixed(7)} USD
             </span>
-            <span tw="text-4xl text-gray-600">/acme</span>
+            <span tw="text-4xl text-gray-600">{`/${token?.tokenSymbol}`}</span>
           </div>
           <div tw="flex items-end">
             <span tw="text-4xl text-gray-900 font-bold">
               {`${(Number(token?.nativePrice) / 1e36).toFixed(7)}`} ETH
             </span>
-            <span tw="text-2xl text-gray-600">/acme</span>
+            <span tw="text-2xl text-gray-600">{`/${token?.tokenSymbol}`}</span>
           </div>
         </div>
         <div
           style={{
             gap: "1rem",
           }}
-          tw="flex text-6xl  items-center text-green-500 justify-end"
+          tw={`flex text-6xl  items-center justify-end ${
+            percentChange > 0 ? "text-green-600" : "text-red-600"
+          }`}
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="100"
-            height="100"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="m18 15-6-6-6 6"></path>
-          </svg>
-          <p>3.2%</p>
+          {percentChange > 0 ? (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="100"
+              height="100"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="m18 15-6-6-6 6"></path>
+            </svg>
+          ) : (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="100"
+              height="100"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="w-4 h-4"
+            >
+              <path d="m6 9 6 6 6-6"></path>
+            </svg>
+          )}
+
+          <p>{percentChange.toFixed(2)}%</p>
         </div>
       </div>
     </div>
