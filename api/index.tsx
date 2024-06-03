@@ -280,7 +280,9 @@ app.frame(
     return c.res({
       image: "https://pbs.twimg.com/media/F4M9IOlWwAEgTDf.jpg",
       intents: [
-        <Button.Link href={`https://basescan.org/tx/${transactionId}`}>
+        <Button.Link
+          href={`https://arbiscan.io/tx/${transactionId}`}
+        >
           View Transaction
         </Button.Link>,
         <Button.Reset>Home</Button.Reset>,
