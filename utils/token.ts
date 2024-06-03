@@ -67,7 +67,7 @@ export async function getTokenPrice(
     });
   }
 try {
-  
+
   console.log({contractAddress})
   const response = await Moralis.EvmApi.token.getTokenPrice({
     chain,
@@ -95,4 +95,5 @@ export function getEthPrice(nativePrice: string, usdPrice: number, ethAmount: nu
   const ethAmountInUsd = (usdPrice / Number(nativePriceInETH)) * 1e18 * ethAmount
   return ethAmountInUsd
 }
+
 

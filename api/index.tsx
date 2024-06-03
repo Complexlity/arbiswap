@@ -41,23 +41,24 @@ export const app = new Frog<{ State: State }>({
 })
 
 app.frame('/', async (c) => {
-  
+
   return c.res({
     // image: "https://i.postimg.cc/Kv3j32RY/start.png",
     image: "https://i.postimg.cc/CxytCWs7/start.png",
     intents: [
       <TextInput placeholder="Enter Contract Address e.g: 0x.." />,
       <Button action="/token">Go</Button>,
+      <Button.Link href="https://dexscreener.com/arbitrum">All Tokens</Button.Link>,
     ],
-  })
+  });
 })
 
 
-async function handleToken(c: FrameContext) {
+
+app.frame('/token', async (c) => {
   const {inputText} = c
-  let ca = c.req.param('ca')
-  if(!ca) ca = inputText ?? "0xD77B108d4f6cefaa0Cae9506A934e825BEccA46E"
-  
+  let ca = inputText ?? "0xD77B108d4f6cefaa0Cae9506A934e825BEccA46E"
+
   let token = null
   let usd = 42
   if(ca){
@@ -65,12 +66,14 @@ token = await getTokenPrice(ca)
 usd= convertTokenAmountToUSD(100000, token) ?? '42'
   }
 
+
+
 console.log(token?.tokenLogo)
   // console.log({token, usd})
   return c.res({
-    image: token ? 
-    <ConvertImage token={token} usd={`${usd}`}  />
-    : 
+    image: token ?
+      <TokenCardDetails token={token} />
+    :
     <ErrorImage />,
     intents:  token ?
     [
@@ -85,13 +88,10 @@ console.log(token?.tokenLogo)
     ]
   })
 }
-
-
-app.frame('/token', 
-handleToken)
+)
 
 app.frame('/confirm/:ca', async (c) => {
-  
+
   const ca = c.req.param("ca")
   if(!ca) throw new Error("Contract address missing")
   let { inputText: ethAmount, deriveState } = c;
@@ -107,7 +107,7 @@ app.frame('/confirm/:ca', async (c) => {
   const baseUrl2 = `https://arbitrum.api.0x.org/swap/v1/price?`
   const eth = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
   let tokenPriceData = await getTokenPrice(ca);
-  
+
 
   const params = new URLSearchParams({
     buyToken: ca,
@@ -132,11 +132,11 @@ app.frame('/confirm/:ca', async (c) => {
     headers: { "0x-api-key": process.env.ZEROX_API_KEY || "" },
   });
 
-  
 
-  
+
+
   const priceData = (await res2.json()) as ZeroxSwapPriceData
-  
+
   const tokenAmountReceived = `${Number(priceData.price) * Number(ethAmount)}`
   const ethAmountInUsd = getEthPrice(tokenPriceData?.nativePrice!, tokenPriceData?.usdPrice!
     , ethAmountAsNumber
@@ -161,7 +161,7 @@ const amount = c.req.param('amount')
 
 if(!ca || !amount) throw new Error('Missing Contract address or Amount')
   // prettier-ignore
- 
+
 
 const baseUrl = `https://arbitrum.api.0x.org/swap/v1/quote?`
 
@@ -339,42 +339,27 @@ app.frame("/convert", async (c) => {
 function ErrorImage(){
   return (
     <div
-        style={{
-          alignItems: 'center',
-          background: "black",
-          backgroundSize: '100% 100%',
-          display: 'flex',
-          flexDirection: 'column',
-          flexWrap: 'nowrap',
-          height: '100%',
-          justifyContent: 'center',
-          textAlign: 'center',
-          width: '100%',
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            gap: "1rem",
-            color: 'white',
-            fontSize: 60,
-            fontStyle: 'normal',
-            letterSpacing: '-0.025em',
-            lineHeight: 1.4,
-            marginTop: 30,
-            padding: '0 120px',
-            whiteSpace: 'pre-wrap',
-          }}
-        >
-          Token not found
-        </div>
-      </div>
+  style={{
+    height: '100%',
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    fontSize: 32,
+    fontWeight: 600,
+  }}
+>
+  <img tw="absolute inset-0" src="https://i.postimg.cc/CxytCWs7/start.png" width="100%" height="100%" />
+  <p tw="absolute top-0 left-10 text-red-600 font-bold text-4xl">Token Not Found. Enter a different address.</p>
+</div>
   )
 }
 
 
 function ConvertImage({ token, usd }: { token: TokenDetails | null; usd: string }) {
-  
+
   return (
     <div
       style={{
@@ -426,6 +411,86 @@ function ConvertImage({ token, usd }: { token: TokenDetails | null; usd: string 
   );
 }
 
+function TokenCardDetails({
+  token,
+}: {
+  token: TokenDetails | null;
+  }) {
+  return (
+    <div
+      tw="flex w-full h-full flex-col "
+      style={{
+        backgroundImage:
+          "linear-gradient(90deg, rgb(0, 124, 240), rgb(0, 223, 216))",
+      }}
+    >
+      <div tw="flex flex-1 justify-between px-16">
+        <div tw="w-1/2 flex  relative">
+          <div
+            style={{
+              gap: "1rem",
+            }}
+            tw="flex flex-col absolute bottom-4  text-white gap-4"
+          >
+            <span tw="text-7xl font-semibold">{token?.tokenName}</span>
+            <span tw="text-5xl">${token?.tokenSymbol}</span>
+          </div>
+        </div>
+        <div tw="flex w-1/2 items-center ">
+          <div tw="flex mx-auto w-[26rem]  content-center rounded-full overflow-hidden">
+            <img
+              src={token?.tokenLogo}
+              tw="object-cover w-full"
+              width="100%"
+            />
+          </div>
+        </div>
+      </div>
+      <div tw="px-16 flex items-center justify-between bg-white h-[30%]">
+        <div
+          style={{
+            gap: "2rem",
+          }}
+          tw="flex flex-1 flex-col"
+        >
+          <div style={{ gap: "4px" }} tw="flex items-end">
+            <span tw="text-5xl font-bold">
+              {token?.usdPrice.toFixed(7)} USD
+            </span>
+            <span tw="text-4xl text-gray-600">/acme</span>
+          </div>
+          <div tw="flex items-end">
+            <span tw="text-4xl text-gray-900 font-bold">
+              {`${(Number(token?.nativePrice) / 1e36).toFixed(7)}`} ETH
+            </span>
+            <span tw="text-2xl text-gray-600">/acme</span>
+          </div>
+        </div>
+        <div
+          style={{
+            gap: "1rem",
+          }}
+          tw="flex text-6xl  items-center text-green-500 justify-end"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="100"
+            height="100"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="m18 15-6-6-6 6"></path>
+          </svg>
+          <p>3.2%</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 
 
