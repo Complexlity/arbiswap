@@ -231,7 +231,7 @@ function PreviewImage({ amountReceived, token, amountInEth, ethInUsd }: { ethInU
           gap: "10px",
         }}
       >
-        <div tw="flex justify-between py-2  w-full">
+        <div tw="flex justify-between py-2  w-full px-4">
           <span tw="text-center text-gray-500 flex">From</span>
           <span tw="text-center text-gray-500">To</span>
         </div>
@@ -276,7 +276,7 @@ function PreviewImage({ amountReceived, token, amountInEth, ethInUsd }: { ethInU
           </div>
         </div>
 
-        <div tw="flex w-full justify-between">
+        <div tw="flex w-full justify-between px-4">
           <span>ETH</span>
           <span>{token.tokenSymbol}</span>
         </div>
@@ -284,16 +284,16 @@ function PreviewImage({ amountReceived, token, amountInEth, ethInUsd }: { ethInU
       <hr tw="py-[1px] w-full bg-gray-800" />
 
       <div tw="flex justify-between py-2">
-        <div tw="text-gray-400">Spend</div>
+        <div tw="text-gray-400">You spend</div>
         <div tw="flex text-4xl items-center" style={{ gap: "4px" }}>
-          <img src={token.tokenLogo} width={50} height={50} />
-          <span>Receive</span>
+          {/* <img src={token.tokenLogo} width={50} height={50} /> */}
+          <span>You receive</span>
         </div>
       </div>
       <div tw="flex justify-between py-2">
-        <span tw="text-gray-400 flex gap-2">{`${amountInEth}/$${ethInUsd}`}</span>
-        <span tw="text-4xl flex" style={{gap:"10px"}}>
-          <span>(${amountReceived})</span>
+        <span tw="text-gray-400 flex gap-2">{`${amountInEth} ETH ($${ethInUsd.toFixed(2)})`}</span>
+        <span tw="text-4xl flex" style={{gap:"5px"}}>
+          <span>{Number(amountReceived).toFixed(2)} </span><span>{token.tokenSymbol}</span>
         </span>
       </div>
 
