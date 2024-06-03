@@ -14,6 +14,7 @@
     "frog": "latest",
     "hono": "^4",
     "moralis": "^2.26.2",
+    "pinata-fdk": "^3.10.2",
     "viem": "^2.13.3"
   },
   "devDependencies": {

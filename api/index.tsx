@@ -1,7 +1,7 @@
 /** @jsxImportSource frog/jsx */
 
 
-import { Button, FrameContext, Frog, TextInput } from 'frog'
+import { Button, FrameContext, Frog, TextInput, TransactionContext } from 'frog'
 import { devtools } from 'frog/dev'
 import { serveStatic } from 'frog/serve-static'
 
@@ -14,6 +14,9 @@ import { createPublicClient, http } from "viem";
 import { arbitrum } from "viem/chains";
 import fs from 'fs'
 import { ZeroxSwapPriceData, ZeroxSwapQuoteOrder } from '../utils/types.js';
+import { fdk } from "../utils/pinata.js";
+import { BlankInput } from 'hono/types';
+
 
 // Uncomment to use Edge Runtime.
 // export const config = {
@@ -40,18 +43,35 @@ export const app = new Frog<{ State: State }>({
   // hub: neynar({ apiKey: 'NEYNAR_FROG_FM' })
 })
 
-app.frame('/', async (c) => {
+const analytics = fdk.analyticsMiddleware({
+  frameId: "buy-tokens-on-arbitrum",
+});
 
-  return c.res({
-    // image: "https://i.postimg.cc/Kv3j32RY/start.png",
-    image: "https://i.postimg.cc/CxytCWs7/start.png",
-    intents: [
-      <TextInput placeholder="Enter Contract Address e.g: 0x.." />,
-      <Button action="/token">Go</Button>,
-      <Button.Link href="https://dexscreener.com/arbitrum">All Tokens</Button.Link>,
-    ],
-  });
-})
+app.frame(
+  "/",
+  analytics,
+  async (
+    c: FrameContext<
+      {
+        State: State;
+      },
+      "/",
+      BlankInput
+    >
+  ) => {
+    return c.res({
+      // image: "https://i.postimg.cc/Kv3j32RY/start.png",
+      image: "https://i.postimg.cc/CxytCWs7/start.png",
+      intents: [
+        <TextInput placeholder="Enter Contract Address e.g: 0x.." />,
+        <Button action="/token">Go</Button>,
+        <Button.Link href="https://dexscreener.com/arbitrum">
+          All Tokens
+        </Button.Link>,
+      ],
+    });
+  }
+);
 
 async function handleTokenDetails(c,  ca: string) {
   let token = null;
@@ -81,136 +101,193 @@ async function handleTokenDetails(c,  ca: string) {
 }
 
 
-app.frame('/token', async (c) => {
-  const {inputText} = c
-  let ca = inputText ?? "0xD77B108d4f6cefaa0Cae9506A934e825BEccA46E"
-  return handleTokenDetails(c, ca)
-}
-)
-app.frame('/exact_token/:ca', async (c) => {
-  let ca = c.req.param("ca")
-  return handleTokenDetails(c, ca)
-}
-)
-
-app.frame('/confirm/:ca', async (c) => {
-
-  const ca = c.req.param("ca")
-  if(!ca) throw new Error("Contract address missing")
-  let { inputText: ethAmount } = c;
-  let ethAmountAsNumber = Number(ethAmount);
-  if (isNaN(ethAmountAsNumber) || ethAmountAsNumber == 0 || !ethAmount) {
-    ethAmount = "0.01"
-    ethAmountAsNumber = Number(ethAmount)
+app.frame(
+  "/token",
+  analytics,
+  async (
+    c: FrameContext<
+      {
+        State: State;
+      },
+      "/",
+      BlankInput
+    >
+  ) => {
+    const { inputText } = c;
+    let ca = inputText ?? "0xD77B108d4f6cefaa0Cae9506A934e825BEccA46E";
+    return handleTokenDetails(c, ca);
   }
+);
+app.frame(
+  "/exact_token/:ca",
+  analytics,
+  async (
+    c: FrameContext<
+      {
+        State: State;
+      },
+      "/",
+      BlankInput
+    >
+  ) => {
+    let ca = c.req.param("ca");
+    return handleTokenDetails(c, ca);
+  }
+);
 
-  console.log({ethAmount})
+app.frame(
+  "/confirm/:ca",
+  analytics,
+  async (
+    c: FrameContext<
+      {
+        State: State;
+      },
+      "/",
+      BlankInput
+    >
+  ) => {
+    const ca = c.req.param("ca");
+    if (!ca) throw new Error("Contract address missing");
+    let { inputText: ethAmount } = c;
+    let ethAmountAsNumber = Number(ethAmount);
+    if (isNaN(ethAmountAsNumber) || ethAmountAsNumber == 0 || !ethAmount) {
+      ethAmount = "0.01";
+      ethAmountAsNumber = Number(ethAmount);
+    }
 
-  const baseUrl = `https://arbitrum.api.0x.org/swap/v1/quote?`
-  const baseUrl2 = `https://arbitrum.api.0x.org/swap/v1/price?`
-  const eth = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
-  let tokenPriceData = await getTokenPrice(ca);
+    console.log({ ethAmount });
+
+    const baseUrl = `https://arbitrum.api.0x.org/swap/v1/quote?`;
+    const baseUrl2 = `https://arbitrum.api.0x.org/swap/v1/price?`;
+    const eth = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+    let tokenPriceData = await getTokenPrice(ca);
+
+    const params = new URLSearchParams({
+      buyToken: ca,
+      sellToken: eth,
+      sellAmount: parseEther(ethAmount).toString(),
+      feeRecipient: "0x8ff47879d9eE072b593604b8b3009577Ff7d6809",
+      buyTokenPercentageFee: "0.01",
+    }).toString();
+    const params2 = new URLSearchParams({
+      buyToken: ca,
+      sellToken: eth,
+      sellAmount: parseEther(ethAmount).toString(),
+      // feeRecipient: "0x8ff47879d9eE072b593604b8b3009577Ff7d6809",
+      // buyTokenPercentageFee: "0.01",
+    }).toString();
+
+    const res = await fetch(baseUrl + params, {
+      headers: { "0x-api-key": process.env.ZEROX_API_KEY || "" },
+    });
+    const res2 = await fetch(baseUrl2 + params2, {
+      headers: { "0x-api-key": process.env.ZEROX_API_KEY || "" },
+    });
+
+    const priceData = (await res2.json()) as ZeroxSwapPriceData;
+
+    const tokenAmountReceived = `${
+      Number(priceData.price) * Number(ethAmount)
+    }`;
+    const ethAmountInUsd = getEthPrice(
+      tokenPriceData?.nativePrice!,
+      tokenPriceData?.usdPrice!,
+      ethAmountAsNumber
+    );
+
+    return c.res({
+      action: "/finish",
+      image: (
+        <PreviewImage
+          ethInUsd={ethAmountInUsd}
+          token={tokenPriceData!}
+          amountInEth={ethAmount}
+          amountReceived={tokenAmountReceived}
+        />
+      ),
+      intents: [
+        <Button.Transaction target={`/tx/${ca}/${ethAmount}`}>
+          Confirm
+        </Button.Transaction>,
+        <Button action={`/exact_token/${ca}`}>Back</Button>,
+      ],
+    });
+  }
+);
+
+app.transaction(
+  "/tx/:ca/:amount",
+  analytics,
+  async (
+    c: TransactionContext<
+      {
+        State: State;
+      },
+      "/tx/:ca/:amount",
+      BlankInput
+    >
+  ) => {
+    const ca = c.req.param("ca");
+    const amount = c.req.param("amount");
+
+    if (!ca || !amount) throw new Error("Missing Contract address or Amount");
+    // prettier-ignore
+
+    const baseUrl = `https://arbitrum.api.0x.org/swap/v1/quote?`
+
+    const eth = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+
+    const params = new URLSearchParams({
+      buyToken: ca,
+      sellToken: eth,
+      sellAmount: parseEther(amount).toString(),
+      feeRecipient: "0x8ff47879d9eE072b593604b8b3009577Ff7d6809",
+      buyTokenPercentageFee: "0.01",
+    }).toString();
+
+    const res = await fetch(baseUrl + params, {
+      headers: { "0x-api-key": process.env.ZEROX_API_KEY || "" },
+    });
+
+    const order = (await res.json()) as ZeroxSwapQuoteOrder;
+
+    return c.send({
+      chainId: `eip155:42161`,
+      to: order.to,
+      data: order.data,
+      value: BigInt(order.value),
+    });
+  }
+);
 
 
-  const params = new URLSearchParams({
-    buyToken: ca,
-    sellToken: eth,
-    sellAmount: parseEther(ethAmount).toString(),
-    feeRecipient: "0x8ff47879d9eE072b593604b8b3009577Ff7d6809",
-    buyTokenPercentageFee: "0.01",
-  }).toString();
-  const params2 = new URLSearchParams({
-    buyToken: ca,
-    sellToken: eth,
-    sellAmount: parseEther(ethAmount).toString(),
-    // feeRecipient: "0x8ff47879d9eE072b593604b8b3009577Ff7d6809",
-    // buyTokenPercentageFee: "0.01",
-  }).toString();
 
+app.frame(
+  "/finish",
+  analytics,
+  async (
+    c: FrameContext<
+      {
+        State: State;
+      },
+      "/",
+      BlankInput
+    >
+  ) => {
+    const { transactionId } = c;
 
-  const res = await fetch(baseUrl + params, {
-    headers: { "0x-api-key": process.env.ZEROX_API_KEY || "" },
-  });
-  const res2 = await fetch(baseUrl2 + params2, {
-    headers: { "0x-api-key": process.env.ZEROX_API_KEY || "" },
-  });
-
-
-
-
-  const priceData = (await res2.json()) as ZeroxSwapPriceData
-
-  const tokenAmountReceived = `${Number(priceData.price) * Number(ethAmount)}`
-  const ethAmountInUsd = getEthPrice(tokenPriceData?.nativePrice!, tokenPriceData?.usdPrice!
-    , ethAmountAsNumber
-  )
-
-
-
-
-  return c.res({
-    action: "/finish",
-    image: <PreviewImage ethInUsd={ethAmountInUsd} token={tokenPriceData!} amountInEth={ethAmount} amountReceived={tokenAmountReceived} />,
-    intents: [
-    <Button.Transaction target={`/tx/${ca}/${ethAmount}`}>Confirm</Button.Transaction>,
-      <Button action={`/exact_token/${ca}`}>Back</Button>
-  ]
-  })
-})
-
-app.transaction("/tx/:ca/:amount", async (c) => {
-const ca = c.req.param('ca')
-const amount = c.req.param('amount')
-
-if(!ca || !amount) throw new Error('Missing Contract address or Amount')
-  // prettier-ignore
-
-
-const baseUrl = `https://arbitrum.api.0x.org/swap/v1/quote?`
-
-const eth = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
-
-
-const params = new URLSearchParams({
-  buyToken: ca,
-  sellToken: eth,
-  sellAmount: parseEther(amount).toString(),
-  feeRecipient: "0x8ff47879d9eE072b593604b8b3009577Ff7d6809",
-  buyTokenPercentageFee: "0.01",
-}).toString();
-
-
-const res = await fetch(baseUrl + params, {
-  headers: { "0x-api-key": process.env.ZEROX_API_KEY || "" },
-});
-
-
-const order = (await res.json()) as ZeroxSwapQuoteOrder
-
-
-  return c.send({
-    chainId: `eip155:42161`,
-    to: order.to,
-    data: order.data,
-    value: BigInt(order.value),
-  });
-});
-
-
-
-app.frame("/finish", async (c) => {
-  const { transactionId } = c;
-
-  return c.res({
-    image: "https://pbs.twimg.com/media/F4M9IOlWwAEgTDf.jpg",
-    intents: [
-      <Button.Link href={`https://basescan.org/tx/${transactionId}`}>
-        View Transaction
-      </Button.Link>,
-      <Button.Reset>Home</Button.Reset>,
-    ],
-  });
-});
+    return c.res({
+      image: "https://pbs.twimg.com/media/F4M9IOlWwAEgTDf.jpg",
+      intents: [
+        <Button.Link href={`https://basescan.org/tx/${transactionId}`}>
+          View Transaction
+        </Button.Link>,
+        <Button.Reset>Home</Button.Reset>,
+      ],
+    });
+  }
+);
 
 function PreviewImage({ amountReceived, token, amountInEth, ethInUsd }: { ethInUsd: number, amountInEth: string, amountReceived: string, token: TokenDetails }) {
 
@@ -501,7 +578,6 @@ function TokenCardDetails({
               stroke-width="2"
               stroke-linecap="round"
               stroke-linejoin="round"
-              class="w-4 h-4"
             >
               <path d="m6 9 6 6 6-6"></path>
             </svg>
