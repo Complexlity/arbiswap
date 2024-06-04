@@ -73,7 +73,16 @@ app.frame(
   }
 );
 
-async function handleTokenDetails(c,  ca: string) {
+async function handleTokenDetails(
+  c: FrameContext<
+    {
+      State: State;
+    },
+    "/",
+    BlankInput
+  >,
+  ca: string
+) {
   let token = null;
   let usd = 42;
   if (ca) {
@@ -97,7 +106,6 @@ async function handleTokenDetails(c,  ca: string) {
           <Button.Reset>Home</Button.Reset>,
         ],
   });
-
 }
 
 
@@ -131,6 +139,7 @@ app.frame(
     >
   ) => {
     let ca = c.req.param("ca");
+    if(!ca) throw new Error("Contract address missing")
     return handleTokenDetails(c, ca);
   }
 );
