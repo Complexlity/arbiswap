@@ -275,7 +275,8 @@ app.frame(
       BlankInput
     >
   ) => {
-    const { transactionId } = c;
+    const { transactionId, frameData } = c;
+    console.log("User transacted", frameData?.fid)
 
     return c.res({
       image: "https://pbs.twimg.com/media/F4M9IOlWwAEgTDf.jpg",
