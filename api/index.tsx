@@ -167,18 +167,11 @@ app.frame(
 
     console.log({ ethAmount });
 
-    const baseUrl = `https://arbitrum.api.0x.org/swap/v1/quote?`;
     const baseUrl2 = `https://arbitrum.api.0x.org/swap/v1/price?`;
     const eth = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
     let tokenPriceData = await getTokenPrice(ca);
 
-    const params = new URLSearchParams({
-      buyToken: ca,
-      sellToken: eth,
-      sellAmount: parseEther(ethAmount).toString(),
-      feeRecipient: "0x8ff47879d9eE072b593604b8b3009577Ff7d6809",
-      buyTokenPercentageFee: "0.01",
-    }).toString();
+
     const params2 = new URLSearchParams({
       buyToken: ca,
       sellToken: eth,
@@ -187,9 +180,7 @@ app.frame(
       // buyTokenPercentageFee: "0.01",
     }).toString();
 
-    const res = await fetch(baseUrl + params, {
-      headers: { "0x-api-key": process.env.ZEROX_API_KEY || "" },
-    });
+
     const res2 = await fetch(baseUrl2 + params2, {
       headers: { "0x-api-key": process.env.ZEROX_API_KEY || "" },
     });
