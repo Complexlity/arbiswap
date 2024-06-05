@@ -1,22 +1,32 @@
 /** @jsxImportSource frog/jsx */
 
-
-import { Button, FrameContext, Frog, TextInput, TransactionContext } from 'frog'
-import { devtools } from 'frog/dev'
-import { serveStatic } from 'frog/serve-static'
+import {
+  Button,
+  FrameContext,
+  Frog,
+  TextInput,
+  TransactionContext,
+} from "frog";
+import { devtools } from "frog/dev";
+import { serveStatic } from "frog/serve-static";
 
 // import { neynar } from 'frog/hubs'
-import { handle } from 'frog/vercel'
+import { handle } from "frog/vercel";
 import { Address, parseAbi, parseEther, parseUnits } from "viem";
-import { TokenDetails, convertTokenAmountToUSD, formatCurrency, getEthPrice, getTokenPrice  } from '../utils/token.js'
+import {
+  TokenDetails,
+  convertTokenAmountToUSD,
+  formatCurrency,
+  getEthPrice,
+  getTokenPrice,
+} from "../utils/token.js";
 import { imageUrls } from "../utils/images.js";
 import { createPublicClient, http } from "viem";
 import { arbitrum } from "viem/chains";
-import fs from 'fs'
-import { ZeroxSwapPriceData, ZeroxSwapQuoteOrder } from '../utils/types.js';
+import fs from "fs";
+import { ZeroxSwapPriceData, ZeroxSwapQuoteOrder } from "../utils/types.js";
 import { fdk } from "../utils/pinata.js";
-import { BlankInput } from 'hono/types';
-
+import { BlankInput } from "hono/types";
 
 // Uncomment to use Edge Runtime.
 // export const config = {
@@ -28,67 +38,47 @@ const arbitrumClient = createPublicClient({
 });
 
 type State = {
-  order: any
-}
-
+  order: any;
+};
 
 export const app = new Frog<{ State: State }>({
-  assetsPath: '/',
-  basePath: '/api',
+  assetsPath: "/",
+  basePath: "/api",
   initialState: {
-    order: {
-    }
-  }
+    order: {},
+  },
   // Supply a Hub to enable frame verification.
   // hub: neynar({ apiKey: 'NEYNAR_FROG_FM' })
-})
+});
 
 const analytics = fdk.analyticsMiddleware({
   frameId: "buy-tokens-on-arbitrum",
 });
 
 type StartFrameContext = FrameContext<
-    {
-      State: State;
-    },
-    "/",
-    BlankInput
-  >
-
-app.frame(
+  {
+    State: State;
+  },
   "/",
-  analytics,
-  async (
-    c: FrameContext<
-      {
-        State: State;
-      },
-      "/",
-      BlankInput
-    >
-  ) => {
-    return c.res({
-      // image: "https://i.postimg.cc/Kv3j32RY/start.png",
-      image: "https://i.postimg.cc/CxytCWs7/start.png",
-      intents: [
-        <TextInput placeholder="Enter Contract Address e.g: 0x.." />,
-        <Button action="/token">Go</Button>,
-        <Button.Link href="https://dexscreener.com/arbitrum">
-          All Tokens
-        </Button.Link>,
-      ],
-    });
-  }
-);
+  BlankInput
+>;
 
-async function handleTokenDetails(
-  c: StartFrameContext,
-  ca: string
-) {
-  let token = null;
-  if (ca) {
-    token = await getTokenPrice(ca);
-  }
+app.frame("/", analytics, async (c: StartFrameContext) => {
+  return c.res({
+    // image: "https://i.postimg.cc/Kv3j32RY/start.png",
+    image: "https://i.postimg.cc/CxytCWs7/start.png",
+    intents: [
+      <TextInput placeholder="Enter Contract Address e.g: 0x.." />,
+      <Button action="/token">Go</Button>,
+      <Button.Link href="https://dexscreener.com/arbitrum">
+        All Tokens
+      </Button.Link>,
+    ],
+  });
+});
+
+async function handleTokenDetails(c: StartFrameContext, ca: string) {
+   let token = await getTokenPrice(ca);
 
   return c.res({
     image: token ? <TokenCardDetails token={token} /> : <ErrorImage />,
@@ -106,110 +96,82 @@ async function handleTokenDetails(
   });
 }
 
+app.frame("/token", analytics, async (c: StartFrameContext) => {
+  const { inputText } = c;
+  let ca = inputText ?? "0x912CE59144191C1204E64559FE8253a0e49E6548";
+  return handleTokenDetails(c, ca);
+});
+app.frame("/exact_token/:ca", analytics, async (c: StartFrameContext) => {
+  let ca = c.req.param("ca");
+  if (!ca) ca = "0x912CE59144191C1204E64559FE8253a0e49E6548";
+  return handleTokenDetails(c, ca);
+});
 
-app.frame(
-  "/token",
-  analytics,
-  async (
-    c: StartFrameContext
-  ) => {
-    const { inputText } = c;
-    let ca = inputText ?? "0x912CE59144191C1204E64559FE8253a0e49E6548";
-    return handleTokenDetails(c, ca);
+app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
+  const ca = c.req.param("ca");
+  if (!ca) throw new Error("Contract address missing");
+  let { inputText: ethAmount } = c;
+  let ethAmountAsNumber = Number(ethAmount);
+  if (isNaN(ethAmountAsNumber) || ethAmountAsNumber == 0 || !ethAmount) {
+    ethAmount = "0.01";
+    ethAmountAsNumber = Number(ethAmount);
   }
-);
-app.frame(
-  "/exact_token/:ca",
-  analytics,
-  async (
-    c: StartFrameContext
-  ) => {
-    let ca = c.req.param("ca");
-    if(!ca) ca = "0x912CE59144191C1204E64559FE8253a0e49E6548";
-    return handleTokenDetails(c, ca);
-  }
-);
-
-app.frame(
-  "/confirm/:ca",
-  analytics,
-  async (
-    c: StartFrameContext
-  ) => {
-    const ca = c.req.param("ca");
-    if (!ca) throw new Error("Contract address missing");
-    let { inputText: ethAmount } = c;
-    let ethAmountAsNumber = Number(ethAmount);
-    if (isNaN(ethAmountAsNumber) || ethAmountAsNumber == 0 || !ethAmount) {
-      ethAmount = "0.01";
-      ethAmountAsNumber = Number(ethAmount);
-    }
-
-    console.log({ ethAmount });
-
-    const baseUrl2 = `https://arbitrum.api.0x.org/swap/v1/price?`;
-    const eth = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
-    let tokenPriceData = await getTokenPrice(ca);
 
 
-    const params2 = new URLSearchParams({
-      buyToken: ca,
-      sellToken: eth,
-      sellAmount: parseEther(ethAmount).toString(),
-      // feeRecipient: "0x8ff47879d9eE072b593604b8b3009577Ff7d6809",
-      // buyTokenPercentageFee: "0.01",
-    }).toString();
+  const baseUrl = `https://arbitrum.api.0x.org/swap/v1/price?`;
+  const eth = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+  let tokenPriceData = await getTokenPrice(ca);
 
+  const params = new URLSearchParams({
+    buyToken: ca,
+    sellToken: eth,
+    sellAmount: parseEther(ethAmount).toString(),
+  }).toString();
 
-    const res2 = await fetch(baseUrl2 + params2, {
-      headers: { "0x-api-key": process.env.ZEROX_API_KEY || "" },
-    });
+  const res = await fetch(baseUrl + params, {
+    headers: { "0x-api-key": process.env.ZEROX_API_KEY || "" },
+  });
 
-    const priceData = (await res2.json()) as ZeroxSwapPriceData;
+  const priceData = (await res.json()) as ZeroxSwapPriceData;
 
-    const tokenAmountReceived = `${
-      Number(priceData.price) * Number(ethAmount)
-    }`;
-    const ethAmountInUsd = getEthPrice(
-      tokenPriceData?.nativePrice!,
-      tokenPriceData?.usdPrice!,
-      ethAmountAsNumber
-    );
+  const tokenAmountReceived = `${Number(priceData.price) * Number(ethAmount)}`;
+  const ethAmountInUsd = getEthPrice(
+    tokenPriceData?.nativePrice!,
+    tokenPriceData?.usdPrice!,
+    ethAmountAsNumber
+  );
 
-    return c.res({
-      action: "/finish",
-      image: (
-        <PreviewImage
-          ethInUsd={ethAmountInUsd}
-          token={tokenPriceData!}
-          amountInEth={ethAmount}
-          amountReceived={tokenAmountReceived}
-        />
-      ),
-      intents: [
-        <Button.Transaction target={`/tx/${ca}/${ethAmount}`}>
-          Confirm
-        </Button.Transaction>,
-        <Button action={`/exact_token/${ca}`}>Back</Button>,
-      ],
-    });
-  }
-);
+  return c.res({
+    action: "/finish",
+    image: (
+      <PreviewImage
+        ethInUsd={ethAmountInUsd}
+        token={tokenPriceData!}
+        amountInEth={ethAmount}
+        amountReceived={tokenAmountReceived}
+      />
+    ),
+    intents: [
+      <Button.Transaction target={`/tx/${ca}/${ethAmount}`}>
+        Confirm
+      </Button.Transaction>,
+      <Button action={`/exact_token/${ca}`}>Back</Button>,
+    ],
+  });
+});
 
 type StartTransactionContext = TransactionContext<
-      {
-        State: State;
-      },
-      "/tx/:ca/:amount",
-      BlankInput
-    >
+  {
+    State: State;
+  },
+  "/tx/:ca/:amount",
+  BlankInput
+>;
 
 app.transaction(
   "/tx/:ca/:amount",
   analytics,
-  async (
-    c: StartTransactionContext
-  ) => {
+  async (c: StartTransactionContext) => {
     const ca = c.req.param("ca");
     const amount = c.req.param("amount");
 
@@ -243,33 +205,32 @@ app.transaction(
   }
 );
 
+app.frame("/finish", analytics, async (c: StartFrameContext) => {
+  const { transactionId, frameData } = c;
+  console.log("User transacted", frameData?.fid);
 
+  return c.res({
+    image: "https://pbs.twimg.com/media/F4M9IOlWwAEgTDf.jpg",
+    intents: [
+      <Button.Link href={`https://arbiscan.io/tx/${transactionId}`}>
+        View Transaction
+      </Button.Link>,
+      <Button.Reset>Home</Button.Reset>,
+    ],
+  });
+});
 
-app.frame(
-  "/finish",
-  analytics,
-  async (
-    c: StartFrameContext
-  ) => {
-    const { transactionId, frameData } = c;
-    console.log("User transacted", frameData?.fid)
-
-    return c.res({
-      image: "https://pbs.twimg.com/media/F4M9IOlWwAEgTDf.jpg",
-      intents: [
-        <Button.Link
-          href={`https://arbiscan.io/tx/${transactionId}`}
-        >
-          View Transaction
-        </Button.Link>,
-        <Button.Reset>Home</Button.Reset>,
-      ],
-    });
-  }
-);
-
-function PreviewImage({ amountReceived, token, amountInEth, ethInUsd }: { ethInUsd: number, amountInEth: string, amountReceived: string, token: TokenDetails }) {
-
+function PreviewImage({
+  amountReceived,
+  token,
+  amountInEth,
+  ethInUsd,
+}: {
+  ethInUsd: number;
+  amountInEth: string;
+  amountReceived: string;
+  token: TokenDetails;
+}) {
   return (
     <div
       style={{
@@ -350,16 +311,23 @@ function PreviewImage({ amountReceived, token, amountInEth, ethInUsd }: { ethInU
         </div>
       </div>
       <div tw="flex justify-between py-2">
-        <span tw="text-gray-400 flex gap-2">{`${amountInEth} ETH ($${ethInUsd.toFixed(2)})`}</span>
-        <span tw="text-4xl flex" style={{gap:"5px"}}>
-          <span>{Number(amountReceived).toFixed(2)} </span><span>{token.tokenSymbol}</span>
+        <span tw="text-gray-400 flex gap-2">{`${amountInEth} ETH ($${ethInUsd.toFixed(
+          2
+        )})`}</span>
+        <span tw="text-4xl flex" style={{ gap: "5px" }}>
+          <span>{Number(amountReceived).toFixed(2)} </span>
+          <span>{token.tokenSymbol}</span>
         </span>
       </div>
 
       <div tw="flex justify-between py-2 items-center">
         <span tw="text-gray-400">Chain</span>
         <span style={{ gap: "4px" }} tw="flex items-center">
-          <img src="https://i.ibb.co/BrQLkcw/arbitrum-arb-logo.png" width={50} height={50} />
+          <img
+            src="https://i.ibb.co/BrQLkcw/arbitrum-arb-logo.png"
+            width={50}
+            height={50}
+          />
           <span>Arbitrum</span>
         </span>
       </div>
@@ -368,57 +336,7 @@ function PreviewImage({ amountReceived, token, amountInEth, ethInUsd }: { ethInU
 }
 
 
-app.frame("/convert", async (c) => {
-  const { inputText } = c;
-  let inputTextAsNumber = Number(inputText);
-  let token: string;
-  let usd: string;
-  if (isNaN(inputTextAsNumber) || inputTextAsNumber == 0) {
-    token = "0";
-    usd = "0";
-  } else {
-    let tokenPriceData = await getTokenPrice(inputText!);
-    const amount = inputTextAsNumber * tokenPriceData!.usdPrice;
-    token = formatCurrency(inputTextAsNumber);
-    usd = formatCurrency(amount, 11, 4);
-  }
-
-  return c.res({
-    // image: <ConvertImage token={token} usd={usd} />,
-    image: <PreviewImage token={token} amountInUsd={usd}  amountInEth={"0.001"}/>,
-    intents: [
-      <TextInput placeholder="token amount e.g 10000" />,
-      <Button>Convert</Button>,
-      <Button.Reset>Home</Button.Reset>,
-    ],
-  });
-});
-
-
-function ErrorImage(){
-  return (
-    <div
-  style={{
-    height: '100%',
-    width: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-    fontSize: 32,
-    fontWeight: 600,
-  }}
->
-  <img tw="absolute inset-0" src="https://i.postimg.cc/CxytCWs7/start.png" width="100%" height="100%" />
-  <p tw="absolute top-0 left-10 text-red-600 font-bold text-4xl">Token Not Found. Enter a different address.</p>
-</div>
-  )
-}
-
-
-function ConvertImage({ token, usd }: { token: TokenDetails | null; usd: string }) {
-
+function ErrorImage() {
   return (
     <div
       style={{
@@ -427,55 +345,26 @@ function ConvertImage({ token, usd }: { token: TokenDetails | null; usd: string 
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
+        justifyContent: "center",
         backgroundColor: "#fff",
         fontSize: 32,
         fontWeight: 600,
       }}
-      //@ts-expect-error
-      tw={"p-0"}
     >
-      <div
-        style={{
-          display: "flex",
-          position: "absolute",
-          opacity: 0.2,
-          height: "100%",
-          width: "100%",
-        }}
-      >
-        <img
-          src={`${imageUrls.calculatorImage}`}
-          width={"100%"}
-          height={"100%"}
-        />
-      </div>
-      <p tw="text-6xl font-bold">Converter</p>
-      <div tw={"flex flex-col text-8xl"}>
-        <div tw={"flex justify-between items-center  mb-6"}>
-          <div tw="flex flex-col items-center w-[20%]">
-            <img src={`${token.tokenLogo}`} height={150} width={150} />
-            <span tw={"text-4xl"}>token</span>
-          </div>
-          <span>{token.tokenName}</span>
-        </div>
-        <div tw={"flex justify-between items-center"}>
-          <div tw="flex flex-col items-center w-[20%]">
-            <img src={`${imageUrls.usFlagIcon}`} height={150} width={200} />
-            <span tw={"text-4xl"}>USD</span>
-          </div>
-          <span>{usd}</span>
-        </div>
-      </div>
+      <img
+        tw="absolute inset-0"
+        src="https://i.postimg.cc/CxytCWs7/start.png"
+        width="100%"
+        height="100%"
+      />
+      <p tw="absolute top-0 left-10 text-red-600 font-bold text-4xl">
+        Token Not Found. Enter a different address.
+      </p>
     </div>
   );
 }
 
-function TokenCardDetails({
-  token,
-}: {
-  token: TokenDetails | null;
-  }) {
-
+function TokenCardDetails({ token }: { token: TokenDetails }) {
   const percentChange = Number(token?.["24hrPercentChange"]);
 
   return (
@@ -569,12 +458,10 @@ function TokenCardDetails({
   );
 }
 
-
-
 // @ts-ignore
-const isEdgeFunction = typeof EdgeFunction !== 'undefined'
-const isProduction = isEdgeFunction || import.meta.env?.MODE !== 'development'
-devtools(app, isProduction ? { assetsPath: '/.frog' } : { serveStatic })
+const isEdgeFunction = typeof EdgeFunction !== "undefined";
+const isProduction = isEdgeFunction || import.meta.env?.MODE !== "development";
+devtools(app, isProduction ? { assetsPath: "/.frog" } : { serveStatic });
 
-export const GET = handle(app)
-export const POST = handle(app)
+export const GET = handle(app);
+export const POST = handle(app);

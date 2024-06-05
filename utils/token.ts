@@ -79,7 +79,7 @@ try {
   // fs.writeFileSync('token.json', JSON.stringify(priceData))
   return priceData as unknown as TokenDetails;
 } catch (error) {
-  console.log({error})
+  console.log({ error })
   return null
 }
 }
