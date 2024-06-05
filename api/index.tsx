@@ -47,6 +47,14 @@ const analytics = fdk.analyticsMiddleware({
   frameId: "buy-tokens-on-arbitrum",
 });
 
+type StartFrameContext = FrameContext<
+    {
+      State: State;
+    },
+    "/",
+    BlankInput
+  >
+
 app.frame(
   "/",
   analytics,
@@ -74,24 +82,14 @@ app.frame(
 );
 
 async function handleTokenDetails(
-  c: FrameContext<
-    {
-      State: State;
-    },
-    "/",
-    BlankInput
-  >,
+  c: StartFrameContext,
   ca: string
 ) {
   let token = null;
-  let usd = 42;
   if (ca) {
     token = await getTokenPrice(ca);
-    usd = convertTokenAmountToUSD(100000, token) ?? "42";
   }
 
-  console.log(token?.tokenLogo);
-  // console.log({token, usd})
   return c.res({
     image: token ? <TokenCardDetails token={token} /> : <ErrorImage />,
     intents: token
@@ -113,16 +111,10 @@ app.frame(
   "/token",
   analytics,
   async (
-    c: FrameContext<
-      {
-        State: State;
-      },
-      "/",
-      BlankInput
-    >
+    c: StartFrameContext
   ) => {
     const { inputText } = c;
-    let ca = inputText ?? "0xD77B108d4f6cefaa0Cae9506A934e825BEccA46E";
+    let ca = inputText ?? "0x912CE59144191C1204E64559FE8253a0e49E6548";
     return handleTokenDetails(c, ca);
   }
 );
@@ -130,16 +122,10 @@ app.frame(
   "/exact_token/:ca",
   analytics,
   async (
-    c: FrameContext<
-      {
-        State: State;
-      },
-      "/",
-      BlankInput
-    >
+    c: StartFrameContext
   ) => {
     let ca = c.req.param("ca");
-    if(!ca) throw new Error("Contract address missing")
+    if(!ca) ca = "0x912CE59144191C1204E64559FE8253a0e49E6548";
     return handleTokenDetails(c, ca);
   }
 );
@@ -148,13 +134,7 @@ app.frame(
   "/confirm/:ca",
   analytics,
   async (
-    c: FrameContext<
-      {
-        State: State;
-      },
-      "/",
-      BlankInput
-    >
+    c: StartFrameContext
   ) => {
     const ca = c.req.param("ca");
     if (!ca) throw new Error("Contract address missing");
@@ -216,17 +196,19 @@ app.frame(
   }
 );
 
-app.transaction(
-  "/tx/:ca/:amount",
-  analytics,
-  async (
-    c: TransactionContext<
+type StartTransactionContext = TransactionContext<
       {
         State: State;
       },
       "/tx/:ca/:amount",
       BlankInput
     >
+
+app.transaction(
+  "/tx/:ca/:amount",
+  analytics,
+  async (
+    c: StartTransactionContext
   ) => {
     const ca = c.req.param("ca");
     const amount = c.req.param("amount");
@@ -267,13 +249,7 @@ app.frame(
   "/finish",
   analytics,
   async (
-    c: FrameContext<
-      {
-        State: State;
-      },
-      "/",
-      BlankInput
-    >
+    c: StartFrameContext
   ) => {
     const { transactionId, frameData } = c;
     console.log("User transacted", frameData?.fid)
