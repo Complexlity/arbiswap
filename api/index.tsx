@@ -63,22 +63,8 @@ type StartFrameContext = FrameContext<
   BlankInput
 >;
 
-app.frame("/", analytics, async (c: StartFrameContext) => {
-  return c.res({
-    // image: "https://i.postimg.cc/Kv3j32RY/start.png",
-    image: "https://i.postimg.cc/CxytCWs7/start.png",
-    intents: [
-      <TextInput placeholder="Enter Contract Address e.g: 0x.." />,
-      <Button action="/token">Go</Button>,
-      <Button.Link href="https://dexscreener.com/arbitrum">
-        All Tokens
-      </Button.Link>,
-    ],
-  });
-});
-
 async function handleTokenDetails(c: StartFrameContext, ca: string) {
-   let token = await getTokenPrice(ca);
+  let token = await getTokenPrice(ca);
 
   return c.res({
     image: token ? <TokenCardDetails token={token} /> : <ErrorImage />,
@@ -96,9 +82,26 @@ async function handleTokenDetails(c: StartFrameContext, ca: string) {
   });
 }
 
+
+app.frame("/", analytics, async (c: StartFrameContext) => {
+  return c.res({
+    // image: "https://i.postimg.cc/Kv3j32RY/start.png",
+    image: "https://i.postimg.cc/CxytCWs7/start.png",
+    intents: [
+      <TextInput placeholder="Enter Contract Address e.g: 0x.." />,
+      <Button action="/token">Go</Button>,
+      <Button.Link href="https://dexscreener.com/arbitrum">
+        All Tokens
+      </Button.Link>,
+    ],
+  });
+});
+
+
 app.frame("/token", analytics, async (c: StartFrameContext) => {
   const { inputText } = c;
   let ca = inputText ?? "0x912CE59144191C1204E64559FE8253a0e49E6548";
+  console.log({ca})
   return handleTokenDetails(c, ca);
 });
 app.frame("/exact_token/:ca", analytics, async (c: StartFrameContext) => {
