@@ -37,6 +37,8 @@ const arbitrumClient = createPublicClient({
   transport: http(),
 });
 
+const DEFAULT_TOKEN_CA = "0x912ce59144191c1204e64559fe8253a0e49e6548"
+
 type State = {
   order: any;
 };
@@ -100,13 +102,14 @@ app.frame("/", analytics, async (c: StartFrameContext) => {
 
 app.frame("/token", analytics, async (c: StartFrameContext) => {
   const { inputText } = c;
-  let ca = inputText ?? "0x912CE59144191C1204E64559FE8253a0e49E6548";
+  let ca = inputText
+    if(!ca) ca  = DEFAULT_TOKEN_CA;
   console.log({ca})
   return handleTokenDetails(c, ca);
 });
 app.frame("/exact_token/:ca", analytics, async (c: StartFrameContext) => {
   let ca = c.req.param("ca");
-  if (!ca) ca = "0x912CE59144191C1204E64559FE8253a0e49E6548";
+  if (!ca) ca = DEFAULT_TOKEN_CA
   return handleTokenDetails(c, ca);
 });
 
