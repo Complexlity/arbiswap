@@ -72,7 +72,7 @@ async function handleTokenDetails(c: StartFrameContext, ca: string) {
     image: token ? <TokenCardDetails token={token} /> : <ErrorImage />,
     intents: token
       ? [
-          <TextInput placeholder="Enter amount in eth" />,
+          <TextInput placeholder="Enter amount in ETH. Default=0.01" />,
           <Button action={`/confirm/${ca}`}>Proceed</Button>,
           <Button.Reset>Back</Button.Reset>,
         ]
