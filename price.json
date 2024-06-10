@@ -1,0 +1,80 @@
+{
+  "chainId": 42161,
+  "price": "0.0002602109888935",
+  "grossPrice": "0.000260597976889",
+  "estimatedPriceImpact": "0.6885",
+  "value": "0",
+  "gasPrice": "10000000",
+  "gas": "423202",
+  "estimatedGas": "423202",
+  "protocolFee": "0",
+  "minimumProtocolFee": "0",
+  "buyTokenAddress": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "buyAmount": "520421977787",
+  "grossBuyAmount": "521195953778",
+  "sellTokenAddress": "0x912ce59144191c1204e64559fe8253a0e49e6548",
+  "sellAmount": "2000000000000000",
+  "grossSellAmount": "2000000000000000",
+  "sources": [
+    {
+      "name": "0x",
+      "proportion": "0"
+    },
+    {
+      "name": "Uniswap_V3",
+      "proportion": "0"
+    },
+    {
+      "name": "SushiSwap",
+      "proportion": "1"
+    },
+    {
+      "name": "Balancer_V2",
+      "proportion": "0"
+    },
+    {
+      "name": "Synapse",
+      "proportion": "0"
+    },
+    {
+      "name": "Curve_V2",
+      "proportion": "0"
+    },
+    {
+      "name": "GMX",
+      "proportion": "0"
+    },
+    {
+      "name": "Aave_V3",
+      "proportion": "0"
+    },
+    {
+      "name": "WOOFi",
+      "proportion": "0"
+    },
+    {
+      "name": "TraderJoe_V2_1",
+      "proportion": "0"
+    },
+    {
+      "name": "Camelot_V3",
+      "proportion": "0"
+    },
+    {
+      "name": "Uniswap_V2",
+      "proportion": "0"
+    }
+  ],
+  "allowanceTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
+  "sellTokenToEthRate": "3810.91050843627676616",
+  "buyTokenToEthRate": "1",
+  "fees": {
+    "zeroExFee": {
+      "feeType": "volume",
+      "feeToken": "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
+      "feeAmount": "773975991",
+      "billingType": "on-chain"
+    }
+  },
+  "auxiliaryChainData": {}
+}
