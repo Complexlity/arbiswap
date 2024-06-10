@@ -37,7 +37,7 @@ const arbitrumClient = createPublicClient({
   transport: http(),
 });
 
-const DEFAULT_TOKEN_CA = "0x912ce59144191c1204e64559fe8253a0e49e6548"
+const DEFAULT_TOKEN_CA = "0x912ce59144191c1204e64559fe8253a0e49e6548";
 
 type State = {
   order: any;
@@ -65,16 +65,22 @@ type StartFrameContext = FrameContext<
   BlankInput
 >;
 
-async function handleTokenDetails(c: StartFrameContext, ca: string, method: string) {
+async function handleTokenDetails(
+  c: StartFrameContext,
+  ca: string,
+  method: string
+) {
   let token = await getTokenPrice(ca);
-  let tokenSymbol = method === "from" ? "ETH" : token?.tokenSymbol
+  let tokenSymbol = method === "from" ? "ETH" : token?.tokenSymbol;
 
   return c.res({
     image: token ? <TokenCardDetails token={token} /> : <ErrorImage />,
     intents: token
       ? [
-        <TextInput placeholder={`Amount(in ${tokenSymbol}`} />,
-          <Button value={method} action={`/confirm/${ca}`}>Proceed</Button>,
+          <TextInput placeholder={`Amount(in ${tokenSymbol}`} />,
+          <Button value={method} action={`/confirm/${ca}`}>
+            Proceed
+          </Button>,
           <Button.Reset>Back</Button.Reset>,
         ]
       : [
@@ -85,24 +91,21 @@ async function handleTokenDetails(c: StartFrameContext, ca: string, method: stri
   });
 }
 
-
 app.frame("/", analytics, async (c: StartFrameContext) => {
   return c.res({
     action: "/methods",
     // image: "https://i.postimg.cc/Kv3j32RY/start.png",
     image: "https://i.postimg.cc/CxytCWs7/start.png",
     intents: [
-      <Button >ETH-TOKEN</Button>,
+      <Button>ETH-TOKEN</Button>,
       <Button>TOKEN-ETH</Button>,
       <Button>TOKEN-TOKEN</Button>,
     ],
   });
 });
 
-
-
-app.frame('/methods', async (c) => {
-  const { buttonIndex } = c
+app.frame("/methods", async (c) => {
+  const { buttonIndex } = c;
 
   if (buttonIndex == 3) {
     return c.res({
@@ -119,45 +122,46 @@ app.frame('/methods', async (c) => {
       image: <SwapImage text="Swap ETH for Token" />,
       intents: [
         <TextInput placeholder="Enter Contract Address e.g: 0x.." />,
-        <Button value="from" action="/token">Proceed</Button>,
+        <Button value="from" action="/token">
+          Proceed
+        </Button>,
         <Button.Reset>Home</Button.Reset>,
       ],
     });
   }
 
-    return c.res({
-      image: <SwapImage text="Swap Token for ETH" />,
-      intents: [
-        <TextInput placeholder="Enter Token Address e.g: 0x.." />,
-        <Button action="/token" value="to">Proceed</Button>,
-        <Button.Reset>Home</Button.Reset>,
-      ],
-    });
-  }
-
-)
-
+  return c.res({
+    image: <SwapImage text="Swap Token for ETH" />,
+    intents: [
+      <TextInput placeholder="Enter Token Address e.g: 0x.." />,
+      <Button action="/token" value="to">
+        Proceed
+      </Button>,
+      <Button.Reset>Home</Button.Reset>,
+    ],
+  });
+});
 
 app.frame("/token", analytics, async (c: StartFrameContext) => {
   const { inputText, buttonValue } = c;
-  let ca = inputText
-  let method = buttonValue
-  if(!method) method = "from"
+  let ca = inputText;
+  let method = buttonValue;
+  if (!method) method = "from";
   if (!ca) ca = DEFAULT_TOKEN_CA;
-  console.log({ca})
+  console.log({ ca });
   return handleTokenDetails(c, ca, method);
 });
 app.frame("/exact_token/:ca", analytics, async (c: StartFrameContext) => {
-  let method = "from"
+  let method = "from";
   let ca = c.req.param("ca");
-  if (!ca) ca = DEFAULT_TOKEN_CA
+  if (!ca) ca = DEFAULT_TOKEN_CA;
   return handleTokenDetails(c, ca, method);
 });
 
 app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
-  const { buttonValue } = c
-  let method = buttonValue
-  if(!method) method = "from"
+  const { buttonValue } = c;
+  let method = buttonValue;
+  if (!method) method = "from";
   const ca = c.req.param("ca");
   if (!ca) throw new Error("Contract address missing");
   let { inputText: tokenAmount } = c;
@@ -167,11 +171,10 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
     tokenAmountAsNumber = Number(tokenAmount);
   }
 
-
   const baseUrl = `https://arbitrum.api.0x.org/swap/v1/price?`;
   const eth = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
-  let token1 = method === "from" ? eth : ca
-  let token2 = method === "from" ? ca : eth
+  let token1 = method === "from" ? ca : eth;
+  let token2 = method === "from" ? eth : ca;
   let tokenPriceData = await getTokenPrice(ca);
 
   const params = new URLSearchParams({
@@ -186,7 +189,9 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
 
   const priceData = (await res.json()) as ZeroxSwapPriceData;
 
-  const tokenAmountReceived = `${Number(priceData.price) * Number(tokenAmount)}`;
+  const tokenAmountReceived = `${
+    Number(priceData.price) * Number(tokenAmount)
+  }`;
   const ethAmountInUsd = getEthPrice(
     tokenPriceData?.nativePrice!,
     tokenPriceData?.usdPrice!,
@@ -205,7 +210,7 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
       />
     ),
     intents: [
-      <Button.Transaction  target={`/tx/${method}/${ca}/${tokenAmount}`}>
+      <Button.Transaction target={`/tx/${method}/${ca}/${tokenAmount}`}>
         Confirm
       </Button.Transaction>,
       <Button action={`/exact_token/${ca}`}>Back</Button>,
@@ -225,20 +230,21 @@ app.transaction(
   "/tx/:method/:ca/:amount",
   analytics,
   async (c: StartTransactionContext) => {
-    const method = c.req.param("method")
+    const method = c.req.param("method");
     const ca = c.req.param("ca");
     const amount = c.req.param("amount");
 
-    if (!ca || !amount || !method) throw new Error("Missing Contract address or Amount");
+    if (!ca || !amount || !method)
+      throw new Error("Missing Contract address or Amount");
     // prettier-ignore
 
     const baseUrl = `https://arbitrum.api.0x.org/swap/v1/quote?`
 
     const eth = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
-    let token1 = method === "from" ? eth : ca;
-    let token2 = method === "from" ? ca : eth;
+    let token1 = method === "from" ? ca : eth;
+    let token2 = method === "from" ? eth : ca;
 
-
+    console.log({token1, token2})
     const params = new URLSearchParams({
       buyToken: token1,
       sellToken: token2,
@@ -278,7 +284,7 @@ app.frame("/finish", analytics, async (c: StartFrameContext) => {
 });
 
 function SwapImage({ text }: { text: string }) {
-  if (!text) text = 'Hello World'
+  if (!text) text = "Hello World";
   return (
     <div
       style={{
@@ -301,12 +307,12 @@ function SwapImage({ text }: { text: string }) {
       >
         <path d="M37.59.25l36.95 64H.64l36.95-64z"></path>
       </svg>
-      <div tw="flex" style={{ marginTop: 40 }}>{text}</div>
+      <div tw="flex" style={{ marginTop: 40 }}>
+        {text}
+      </div>
     </div>
   );
 }
-
-
 
 function PreviewImage({
   method,
@@ -315,7 +321,7 @@ function PreviewImage({
   amountInEth,
   ethInUsd,
 }: {
-  method: string
+  method: string;
   ethInUsd: number;
   amountInEth: string;
   amountReceived: string;
@@ -424,7 +430,6 @@ function PreviewImage({
     </div>
   );
 }
-
 
 function ErrorImage() {
   return (
