@@ -205,7 +205,7 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
       />
     ),
     intents: [
-      <Button.Transaction target={`/tx/${ca}/${tokenAmount}`}>
+      <Button.Transaction  target={`/tx/${method}/${ca}/${tokenAmount}`}>
         Confirm
       </Button.Transaction>,
       <Button action={`/exact_token/${ca}`}>Back</Button>,
@@ -222,22 +222,26 @@ type StartTransactionContext = TransactionContext<
 >;
 
 app.transaction(
-  "/tx/:ca/:amount",
+  "/tx/:method/:ca/:amount",
   analytics,
   async (c: StartTransactionContext) => {
+    const method = c.req.param("method")
     const ca = c.req.param("ca");
     const amount = c.req.param("amount");
 
-    if (!ca || !amount) throw new Error("Missing Contract address or Amount");
+    if (!ca || !amount || !method) throw new Error("Missing Contract address or Amount");
     // prettier-ignore
 
     const baseUrl = `https://arbitrum.api.0x.org/swap/v1/quote?`
 
     const eth = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+    let token1 = method === "from" ? eth : ca;
+    let token2 = method === "from" ? ca : eth;
+
 
     const params = new URLSearchParams({
-      buyToken: ca,
-      sellToken: eth,
+      buyToken: token1,
+      sellToken: token2,
       sellAmount: parseEther(amount).toString(),
       feeRecipient: "0x8ff47879d9eE072b593604b8b3009577Ff7d6809",
       buyTokenPercentageFee: "0.01",
