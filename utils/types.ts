@@ -121,3 +121,14 @@ export interface Source {
     name:       string;
     proportion: string;
 }
+
+declare module "react" {
+  // The css prop
+  interface HTMLAttributes<T> extends DOMAttributes<T> {
+    tw?: string;
+  }
+  // The inline svg css prop
+  interface SVGProps<T> extends SVGProps<SVGSVGElement> {
+    tw?: string;
+  }
+}
