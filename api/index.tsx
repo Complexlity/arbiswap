@@ -125,7 +125,6 @@ app.frame('/methods', async (c) => {
     });
   }
 
-  if (buttonIndex == 2) {
     return c.res({
       image: <SwapImage text="Swap Token for ETH" />,
       intents: [
@@ -136,7 +135,7 @@ app.frame('/methods', async (c) => {
     });
   }
 
-})
+)
 
 
 app.frame("/token", analytics, async (c: StartFrameContext) => {
