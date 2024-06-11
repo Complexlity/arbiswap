@@ -359,9 +359,7 @@ app.transaction("/sell/:token1/:token2/:amount", async (c) => {
   });
 
   const order = (await res.json()) as ZeroxSwapQuoteOrder;
-  console.log("Writing order...")
-  fs.writeFileSync("order.json", JSON.stringify(order, null, 2))
-  console.log("Done writing order...")
+  
 
 
     return c.send({
