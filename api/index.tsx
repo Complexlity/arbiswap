@@ -328,12 +328,9 @@ app.frame("/approved/:token1/:token2/:amount", async (c) => {
   const amount = c.req.param("amount");
   console.log({ token1, token2, amount });
   if (!token1 || !amount) throw new Error("Token 1 not defined");
-  const params = new URLSearchParams({
-    token1,
-    token2,
-    amount,
-  }).toString();
+
   return c.res({
+    action: "/finish",
     image: "https://i.postimg.cc/Kv3j32RY/start.png",
     intents: [
       <Button.Transaction target={`/sell/${token1}/${token2}/${amount}`}>
@@ -372,6 +369,7 @@ app.transaction("/sell/:token1/:token2/:amount", async (c) => {
     chainId: `eip155:42161`,
     to: order.to,
     data: order.data,
+    //@ts-expect-error
     value: order.value ? BigInt(order.value) : "0",
   });
 });
