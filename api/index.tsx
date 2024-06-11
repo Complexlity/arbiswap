@@ -149,7 +149,7 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
     return c.res({
       image: dummyImage,
       intents: [
-        <TextInput placeholder={`Amount in ${token1}`} />,
+        <TextInput placeholder={`Amount in token1`} />,
         <Button action={`/swap/${token1}/${token2}/amount`}>
           Next
         </Button>,
