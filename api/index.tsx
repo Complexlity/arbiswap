@@ -215,7 +215,11 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
     amount: tokenAmount
   }).toString();
 
-  const action = method === "from" ? "/finish" : `/approved?` + params2;
+  console.log({params2})
+
+
+
+  const action = method === "from" ? "/finish" : `/approved/${token1}/${token2}/${tokenAmount}`;
   console.log({action})
   const transactionTarget =
     method === "from" ? `/tx/${method}/${ca}/${tokenAmount}` : `/approve/${ca}`;
@@ -252,11 +256,11 @@ app.transaction("/approve/:ca", async (c) => {
   });
 });
 
-app.frame("/approved", async (c) => {
+app.frame("/approved/:token1/:token2/:amount", async (c) => {
   console.log("I am in approved")
-  const token1 = c.req.query("token1");
-  const token2 = c.req.query("token2") ?? ETHEREUM_ADDRESS;
-  const amount = c.req.query("amount");
+  const token1 = c.req.param("token1");
+  const token2 = c.req.param("token2") ?? ETHEREUM_ADDRESS;
+  const amount = c.req.param("amount");
   console.log({token1, token2, amount})
   if (!token1 || !amount) throw new Error("Token 1 not defined");
   const params = new URLSearchParams({
@@ -275,11 +279,11 @@ app.frame("/approved", async (c) => {
   });
 });
 
-app.transaction("/sell", async (c) => {
+app.transaction("/sell/:token1/:token2/:amount", async (c) => {
   console.log("I am in sell")
-  const token1 = c.req.query("token1");
-  const token2 = c.req.query("token2");
-  const amount = c.req.query("amount");
+  const token1 = c.req.param("token1");
+  const token2 = c.req.param("token2");
+  const amount = c.req.param("amount");
   console.log({token1, token2,amount})
   if (!token1 || !token2 || !amount) throw new Error("Values missing");
 
