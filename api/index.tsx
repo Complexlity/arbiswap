@@ -38,6 +38,7 @@ const arbitrumClient = createPublicClient({
 });
 
 const DEFAULT_TOKEN_CA = "0x912ce59144191c1204e64559fe8253a0e49e6548";
+const ETHEREUM_ADDRESS = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 
 type State = {
   order: any;
@@ -74,7 +75,8 @@ async function handleTokenDetails(
   let tokenSymbol = method === "from" ? "ETH" : token?.tokenSymbol;
 
   return c.res({
-    image: token ? <TokenCardDetails token={token} /> : <ErrorImage />,
+    // image: token ? <TokenCardDetails token={token} /> : <ErrorImage />,
+    image: dummyImage,
     intents: token
       ? [
           <TextInput placeholder={`Amount(in ${tokenSymbol}`} />,
@@ -91,7 +93,7 @@ async function handleTokenDetails(
   });
 }
 
-
+const dummyImage = "https://i.postimg.cc/Kv3j32RY/start.png";
 
 app.frame("/", analytics, async (c: StartFrameContext) => {
   return c.res({
@@ -108,7 +110,7 @@ app.frame("/", analytics, async (c: StartFrameContext) => {
 
 app.frame("/methods", async (c) => {
   const { buttonIndex } = c;
-  console.log({buttonIndex})
+  console.log({ buttonIndex });
 
   if (buttonIndex == 3) {
     return c.res({
@@ -121,7 +123,7 @@ app.frame("/methods", async (c) => {
     });
   }
   if (buttonIndex == 1) {
-    console.log("I am here")
+    console.log("I am here");
     return c.res({
       image: <SwapImage text="Swap ETH for Token" />,
       intents: [
@@ -134,10 +136,9 @@ app.frame("/methods", async (c) => {
     });
   }
 
-
-
   return c.res({
-    image: <SwapImage text="Swap Token for ETH" />,
+    // image: <SwapImage text="Swap Token for ETH" />,
+    image: dummyImage,
     intents: [
       <TextInput placeholder="Enter Token Address e.g: 0x.." />,
       <Button action="/token" value="to">
@@ -156,7 +157,7 @@ app.frame("/token", analytics, async (c: StartFrameContext) => {
   if (!method) method = "from";
   if (!ca) ca = DEFAULT_TOKEN_CA;
   console.log({ ca });
-  console.log({method})
+  console.log({ method });
   return handleTokenDetails(c, ca, method);
 });
 app.frame("/exact_token/:ca", analytics, async (c: StartFrameContext) => {
@@ -208,8 +209,18 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
     tokenAmountAsNumber
   );
 
+  const params2 = new URLSearchParams({
+    token1: ca,
+    token2: eth,
+    amount: tokenAmount
+  }).toString();
+
+  const action = method === "from" ? "/finish" : `/approved` + params2;
+  console.log({action})
+  const transactionTarget =
+    method === "from" ? `/tx/${method}/${ca}/${tokenAmount}` : `/approve/${ca}`;
   return c.res({
-    action: "/finish",
+    action,
     image: (
       <PreviewImage
         method={method}
@@ -220,12 +231,81 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
       />
     ),
     intents: [
-      <Button.Transaction target={`/tx/${method}/${ca}/${tokenAmount}`}>
-        Confirm
+      <Button.Transaction target={transactionTarget}>
+        {method == "from" ? "Confirm" : "Approve"}
       </Button.Transaction>,
       <Button action={`/exact_token/${ca}`}>Back</Button>,
     ],
   });
+});
+
+app.transaction("/approve/:ca", async (c) => {
+  const ca = c.req.param("ca");
+  const maxApproval = BigInt(2) ** BigInt(256) - BigInt(1);
+
+  return c.contract({
+    chainId: "eip155:42161",
+    abi: ERC20TokenAbi,
+    functionName: "approve",
+    args: [`0xdef1c0ded9bec7f1a1670819833240f027b25eff`, maxApproval],
+    to: ca as `0x${string}`,
+  });
+});
+
+app.frame("/approved", async (c) => {
+  console.log("I am in approved")
+  const token1 = c.req.query("token1");
+  const token2 = c.req.query("token2") ?? ETHEREUM_ADDRESS;
+  const amount = c.req.query("amount");
+  console.log({token1, token2, amount})
+  if (!token1 || !amount) throw new Error("Token 1 not defined");
+  const params = new URLSearchParams({
+    token1,
+    token2,
+    amount,
+  }).toString();
+  return c.res({
+    image: "https://i.postimg.cc/Kv3j32RY/start.png",
+    intents: [
+      <Button.Transaction target={`/sell` + params}>
+        Confirm
+      </Button.Transaction>,
+      <Button.Reset>Cancel</Button.Reset>,
+    ],
+  });
+});
+
+app.transaction("/sell", async (c) => {
+  console.log("I am in sell")
+  const token1 = c.req.query("token1");
+  const token2 = c.req.query("token2");
+  const amount = c.req.query("amount");
+  console.log({token1, token2,amount})
+  if (!token1 || !token2 || !amount) throw new Error("Values missing");
+
+  const params = new URLSearchParams({
+    buyToken: token1,
+    sellToken: token2,
+    sellAmount: parseEther(amount).toString(),
+    feeRecipient: "0x8ff47879d9eE072b593604b8b3009577Ff7d6809",
+    buyTokenPercentageFee: "0.01",
+  }).toString();
+  const baseUrl = `https://arbitrum.api.0x.org/swap/v1/quote?`;
+
+  const res = await fetch(baseUrl + params, {
+    headers: { "0x-api-key": process.env.ZEROX_API_KEY || "" },
+  });
+
+  const order = (await res.json()) as ZeroxSwapQuoteOrder;
+  // fs.writeFileSync("order.json", JSON.stringify(order, null , 2))
+
+  return c.send({
+    chainId: `eip155:42161`,
+    to: order.to,
+    data: order.data,
+    value: BigInt(order.value),
+  });
+
 });
 
 type StartTransactionContext = TransactionContext<
@@ -254,7 +334,7 @@ app.transaction(
     let token1 = method === "from" ? ca : eth;
     let token2 = method === "from" ? eth : ca;
 
-    console.log({ token1, token2 })
+    console.log({ token1, token2 });
     const params = new URLSearchParams({
       buyToken: token1,
       sellToken: token2,
@@ -276,8 +356,8 @@ app.transaction(
       data: order.data,
       value: BigInt(order.value),
     });
-
-  })
+  }
+);
 
 app.frame("/finish", analytics, async (c: StartFrameContext) => {
   const { transactionId, frameData } = c;
@@ -563,6 +643,27 @@ function TokenCardDetails({ token }: { token: TokenDetails }) {
     </div>
   );
 }
+
+const ERC20TokenAbi = [
+  {
+    constant: true,
+    inputs: [{ name: "_owner", type: "address" }],
+    name: "balanceOf",
+    outputs: [{ name: "balance", type: "uint256" }],
+    type: "function",
+  },
+  {
+    constant: false,
+    inputs: [
+      { name: "_spender", type: "address" },
+      { name: "_value", type: "uint256" },
+    ],
+    name: "approve",
+    outputs: [{ name: "success", type: "bool" }],
+    type: "function",
+  },
+  // Add other ABI items you need
+];
 
 // @ts-ignore
 const isEdgeFunction = typeof EdgeFunction !== "undefined";
