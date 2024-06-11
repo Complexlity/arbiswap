@@ -215,7 +215,7 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
     amount: tokenAmount
   }).toString();
 
-  const action = method === "from" ? "/finish" : `/approved` + params2;
+  const action = method === "from" ? "/finish" : `/approved?` + params2;
   console.log({action})
   const transactionTarget =
     method === "from" ? `/tx/${method}/${ca}/${tokenAmount}` : `/approve/${ca}`;
@@ -267,7 +267,7 @@ app.frame("/approved", async (c) => {
   return c.res({
     image: "https://i.postimg.cc/Kv3j32RY/start.png",
     intents: [
-      <Button.Transaction target={`/sell` + params}>
+      <Button.Transaction target={`/sell?` + params}>
         Confirm
       </Button.Transaction>,
       <Button.Reset>Cancel</Button.Reset>,
