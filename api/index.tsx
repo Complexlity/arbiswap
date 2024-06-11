@@ -27,6 +27,7 @@ import fs from "fs";
 import { ZeroxSwapPriceData, ZeroxSwapQuoteOrder } from "../utils/types.js";
 import { fdk } from "../utils/pinata.js";
 import { BlankInput } from "hono/types";
+import { CommonSolUtilsConfigSetup } from "moralis/common-sol-utils";
 
 // Uncomment to use Edge Runtime.
 // export const config = {
@@ -103,7 +104,67 @@ app.frame("/", analytics, async (c: StartFrameContext) => {
     intents: [
       <Button>ETH-TOKEN</Button>,
       <Button>TOKEN-ETH</Button>,
-      <Button>TOKEN-TOKEN</Button>,
+      <Button action="/swap/token1/token2/amount">TOKEN-TOKEN</Button>,
+    ],
+  });
+});
+
+app.frame("/swap/:token1/:token2/:amount", async (c) => {
+
+  const { inputText, url } = c;
+
+  let { token1, token2, amount } = c.req.param()
+  console.log({token1, token2, amount})
+
+  if (token1 === "token1") token1 = inputText ?? "token1";
+  else if (token2 === "token2") token2 = inputText ?? "token2";
+  else amount = inputText ?? "amount";
+
+  console.log({token1, token2, amount})
+  if (token1 === "token1") {
+    return c.res({
+      image: dummyImage,
+      intents: [
+        <TextInput placeholder="Enter token 1" />,
+        <Button>Next</Button>,
+      ],
+    });
+  }
+
+  else if (token2 === "token2") {
+    return c.res({
+      image: dummyImage,
+      intents: [
+        <TextInput placeholder="Enter token 2" />,
+        <Button action={`/swap/${token1}/token2/amount`}>Next</Button>,
+        <Button.Reset>Home</Button.Reset>
+      ],
+    });
+  }
+
+  else if (amount === "amount") {
+    return c.res({
+      image: dummyImage,
+      intents: [
+        <TextInput placeholder={`Amount in ${token1}`} />,
+        <Button action={`/swap/${token1}/${token2}/amount`}>
+          Next
+        </Button>,
+        <Button action={`/swap/token1=${token1}/token2/amount`}>Back</Button>,
+      ],
+    });
+  }
+
+  if(token1 === "token1" || token2 === "token2" || amount === "amount") throw new Error("Not allowed")
+  const action = `/approved/${token2}/${token2}/${amount}`;
+  return c.res({
+    action,
+    image: dummyImage,
+    intents: [
+      <Button.Transaction target={`/approve/${token1}`}>
+        Approve {token1}
+      </Button.Transaction>,
+      <Button action={`/swap/${token1}/${token2}/amount`}>Back</Button>,
     ],
   });
 });
@@ -212,15 +273,16 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
   const params2 = new URLSearchParams({
     token1: ca,
     token2: eth,
-    amount: tokenAmount
+    amount: tokenAmount,
   }).toString();
 
-  console.log({params2})
+  console.log({ params2 });
 
-
-
-  const action = method === "from" ? "/finish" : `/approved/${token1}/${token2}/${tokenAmount}`;
-  console.log({action})
+  const action =
+    method === "from"
+      ? "/finish"
+      : `/approved/${token1}/${token2}/${tokenAmount}`;
+  console.log({ action });
   const transactionTarget =
     method === "from" ? `/tx/${method}/${ca}/${tokenAmount}` : `/approve/${ca}`;
   return c.res({
@@ -257,11 +319,11 @@ app.transaction("/approve/:ca", async (c) => {
 });
 
 app.frame("/approved/:token1/:token2/:amount", async (c) => {
-  console.log("I am in approved")
+  console.log("I am in approved");
   const token1 = c.req.param("token1");
   const token2 = c.req.param("token2") ?? ETHEREUM_ADDRESS;
   const amount = c.req.param("amount");
-  console.log({token1, token2, amount})
+  console.log({ token1, token2, amount });
   if (!token1 || !amount) throw new Error("Token 1 not defined");
   const params = new URLSearchParams({
     token1,
@@ -280,11 +342,11 @@ app.frame("/approved/:token1/:token2/:amount", async (c) => {
 });
 
 app.transaction("/sell/:token1/:token2/:amount", async (c) => {
-  console.log("I am in sell")
+  console.log("I am in sell");
   const token1 = c.req.param("token1");
   const token2 = c.req.param("token2");
   const amount = c.req.param("amount");
-  console.log({token1, token2,amount})
+  console.log({ token1, token2, amount });
   if (!token1 || !token2 || !amount) throw new Error("Values missing");
 
   const params = new URLSearchParams({
@@ -309,7 +371,6 @@ app.transaction("/sell/:token1/:token2/:amount", async (c) => {
     data: order.data,
     value: BigInt(order.value),
   });
-
 });
 
 type StartTransactionContext = TransactionContext<
