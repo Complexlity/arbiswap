@@ -159,7 +159,7 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
   }
 
   if(token1 === "token1" || token2 === "token2" || amount === "amount") throw new Error("Not allowed")
-  const action = `/approved/${token2}/${token2}/${amount}`;
+  const action = `/approved/${token2}/${token1}/${amount}`;
   return c.res({
     action,
     image: dummyImage,
@@ -273,13 +273,6 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
     tokenAmountAsNumber
   );
 
-  const params2 = new URLSearchParams({
-    token1: ca,
-    token2: eth,
-    amount: tokenAmount,
-  }).toString();
-
-  console.log({ params2 });
 
   const action =
     method === "from"
@@ -329,11 +322,14 @@ app.frame("/approved/:token1/:token2/:amount", async (c) => {
   console.log({ token1, token2, amount });
   if (!token1 || !amount) throw new Error("Token 1 not defined");
 
+  const transactionTarget = `/sell/${token1}/${token2}/${amount}`;
+  console.log({transactionTarget})
+
   return c.res({
     action: "/finish",
     image: "https://i.postimg.cc/Kv3j32RY/start.png",
     intents: [
-      <Button.Transaction target={`/sell/${token1}/${token2}/${amount}`}>
+      <Button.Transaction target={transactionTarget}>
         Confirm
       </Button.Transaction>,
       <Button.Reset>Cancel</Button.Reset>,
@@ -363,15 +359,17 @@ app.transaction("/sell/:token1/:token2/:amount", async (c) => {
   });
 
   const order = (await res.json()) as ZeroxSwapQuoteOrder;
-  // fs.writeFileSync("order.json", JSON.stringify(order, null , 2))
+  console.log("Writing order...")
+  fs.writeFileSync("order.json", JSON.stringify(order, null, 2))
+  console.log("Done writing order...")
 
-  return c.send({
-    chainId: `eip155:42161`,
-    to: order.to,
-    data: order.data,
-    //@ts-expect-error
-    value: order.value ? BigInt(order.value) : "0",
-  });
+
+    return c.send({
+      chainId: `eip155:42161`,
+      to: order.to,
+      data: order.data,
+      value: BigInt(order.value),
+    });
 });
 
 type StartTransactionContext = TransactionContext<
