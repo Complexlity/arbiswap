@@ -193,7 +193,7 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
 
   const priceData = (await res.json()) as ZeroxSwapPriceData;
 
-  fs.writeFileSync("price.json", JSON.stringify(priceData, null, 2));
+  // fs.writeFileSync("price.json", JSON.stringify(priceData, null, 2));
 
   const tokenAmountReceived = `${
     Number(priceData.price) * Number(tokenAmount)
@@ -264,7 +264,7 @@ app.transaction(
     });
 
     const order = (await res.json()) as ZeroxSwapQuoteOrder;
-    fs.writeFileSync("order.json", JSON.stringify(order, null , 2))
+    // fs.writeFileSync("order.json", JSON.stringify(order, null , 2))
 
     // return c.send({
     //   chainId: `eip155:42161`,
