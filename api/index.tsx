@@ -271,7 +271,7 @@ app.frame("/approved/:token1/:token2/:amount", async (c) => {
   return c.res({
     image: "https://i.postimg.cc/Kv3j32RY/start.png",
     intents: [
-      <Button.Transaction target={`/sell?` + params}>
+      <Button.Transaction target={`/sell/${token1}/${token2}/${amount}`}>
         Confirm
       </Button.Transaction>,
       <Button.Reset>Cancel</Button.Reset>,
