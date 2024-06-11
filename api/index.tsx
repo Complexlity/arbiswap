@@ -122,16 +122,18 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
 
   console.log({token1, token2, amount})
   if (token1 === "token1") {
+    console.log("Token 1 not defined")
     return c.res({
       image: dummyImage,
       intents: [
         <TextInput placeholder="Enter token 1" />,
-        <Button>Next</Button>,
+        <Button action="/swap/token1/token2/ amount">Next</Button>,
       ],
     });
   }
 
   else if (token2 === "token2") {
+    console.log("Token 2 not defined")
     return c.res({
       image: dummyImage,
       intents: [
@@ -143,6 +145,7 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
   }
 
   else if (amount === "amount") {
+    console.log("Amount not defined")
     return c.res({
       image: dummyImage,
       intents: [
