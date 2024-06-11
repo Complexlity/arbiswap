@@ -372,7 +372,7 @@ app.transaction("/sell/:token1/:token2/:amount", async (c) => {
     chainId: `eip155:42161`,
     to: order.to,
     data: order.data,
-    value: BigInt(order.value),
+    value: order.value ? BigInt(order.value) : "0",
   });
 });
 
