@@ -118,6 +118,9 @@ app.frame("/", analytics, async (c: StartFrameContext) => {
 app.frame("/swap/:token1/:token2/:amount", async (c) => {
 
   const { inputText, url } = c;
+  let token1PriceData: TokenDetails | null = null
+  let token2PriceData: TokenDetails | null = null
+  let res: Response | null = null
 
   let { token1, token2, amount } = c.req.param()
   console.log({token1, token2, amount})
@@ -130,7 +133,7 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
   if (token1 === "token1") {
     console.log("Token 1 not defined")
     return c.res({
-      image: dummyImage,
+      image: <MainSwapImage />,
       intents: [
         <TextInput placeholder="Enter token 1" />,
         <Button action="/swap/token1/token2/ amount">Next</Button>,
@@ -139,9 +142,11 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
   }
 
   else if (token2 === "token2") {
+    token1PriceData = await getTokenPrice(token1)
+    if(!token1PriceData) throw new Error("Token 1 price data missing")
     console.log("Token 2 not defined")
     return c.res({
-      image: dummyImage,
+      image: <MainSwapImage token1={token1PriceData} />,
       intents: [
         <TextInput placeholder="Enter token 2" />,
         <Button action={`/swap/${token1}/token2/amount`}>Next</Button>,
@@ -151,9 +156,11 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
   }
 
   else if (amount === "amount") {
+    [token1PriceData, token2PriceData] = await Promise.all([getTokenPrice(token1), getTokenPrice(token2)])
+    if(!token1PriceData || !token2PriceData) throw new Error("Token 1 or Token 2 Missing")
     console.log("Amount not defined")
     return c.res({
-      image: dummyImage,
+      image: <MainSwapImage token1={token1PriceData} token2={token2PriceData} />,
       intents: [
         <TextInput placeholder={`Amount in token1`} />,
         <Button action={`/swap/${token1}/${token2}/amount`}>
@@ -166,9 +173,31 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
 
   if(token1 === "token1" || token2 === "token2" || amount === "amount") throw new Error("Not allowed")
   const action = `/approved/${token2}/${token1}/${amount}`;
+
+  const baseUrl = `https://arbitrum.api.0x.org/swap/v1/price?`;
+  const params = new URLSearchParams({
+    sellToken: token1,
+    buyToken: token2,
+    sellAmount: parseEther(amount).toString(),
+  }).toString();
+
+  const fetcher = fetch(baseUrl + params, {
+    headers: { "0x-api-key": process.env.ZEROX_API_KEY || "" },
+  });
+
+  [token1PriceData, token2PriceData, res] = await Promise.all([
+    getTokenPrice(token1),
+    getTokenPrice(token2),
+    fetcher
+  ]);
+  if(!token1PriceData || !token2PriceData || !res) throw new Error("Could not fetch data")
+  const priceData = (await res.json()) as ZeroxSwapPriceData;
+  const tokenAmountReceived = `${Number(priceData.price) * Number(amount)}`;
+
+
   return c.res({
     action,
-    image: dummyImage,
+    image: <MainSwapImage token1={token1PriceData} token2={token2PriceData} sendAmount={amount} receiveAmount={tokenAmountReceived} />,
     intents: [
       <Button.Transaction target={`/approve/${token1}`}>
         Approve {token1}
