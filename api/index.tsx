@@ -48,11 +48,6 @@ type State = {
 export const app = new Frog<{ State: State }>({
   assetsPath: "/",
   basePath: "/api",
-  initialState: {
-    order: {},
-  },
-  // Supply a Hub to enable frame verification.
-  // hub: neynar({ apiKey: 'NEYNAR_FROG_FM' })
 });
 
 const analytics = fdk.analyticsMiddleware({
@@ -72,25 +67,36 @@ async function handleTokenDetails(
   ca: string,
   method: string
 ) {
-  let token = await getTokenPrice(ca);
-  let tokenSymbol = method === "from" ? "ETH" : token?.tokenSymbol;
+  let token1: TokenDetails | null = null
+    let token2: TokenDetails | null = null
+
+  if (method === "from") {
+    [token1, token2] = await Promise.all([getTokenPrice(), getTokenPrice(ca)])
+    if(!token1 || !token2) throw new Error("Could not get token1 or token2 from moralis")
+    token1.tokenSymbol = 'ETH'
+  }
+
+  else {
+    [token1, token2] = await Promise.all([getTokenPrice(ca), getTokenPrice()])
+    if(!token1 || !token2) throw new Error("Could not get token1 or token2 from moralis")
+    token2.tokenSymbol = 'ETH'
+  }
+
+
 
   return c.res({
-    // image: token ? <TokenCardDetails token={token} /> : <ErrorImage />,
-    image: dummyImage,
-    intents: token
-      ? [
-          <TextInput placeholder={`Amount(in ${tokenSymbol}`} />,
+
+    image: <MainSwapImage token1={token1} token2={token2} />,
+    // image: dummyImage,
+    intents:
+       [
+          <TextInput placeholder={`Amount(in ${token1.tokenSymbol}`} />,
           <Button value={method} action={`/confirm/${ca}`}>
             Proceed
           </Button>,
           <Button.Reset>Back</Button.Reset>,
         ]
-      : [
-          <TextInput placeholder="Enter contract address" />,
-          <Button>Retry</Button>,
-          <Button.Reset>Home</Button.Reset>,
-        ],
+
   });
 }
 
@@ -175,21 +181,14 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
 app.frame("/methods", async (c) => {
   const { buttonIndex } = c;
   console.log({ buttonIndex });
+  let token = await getTokenPrice();
+    if (!token) throw new Error("Token not found");
+   token.tokenSymbol = "ETH"
 
-  if (buttonIndex == 3) {
-    return c.res({
-      image: <SwapImage text="Swap Token For Token" />,
-      intents: [
-        <TextInput placeholder="Enter Contract Address e.g: 0x.." />,
-        <Button>Proceed</Button>,
-        <Button.Reset>Home</Button.Reset>,
-      ],
-    });
-  }
+
   if (buttonIndex == 1) {
-    console.log("I am here");
     return c.res({
-      image: <SwapImage text="Swap ETH for Token" />,
+      image: <MainSwapImage token1={token} />,
       intents: [
         <TextInput placeholder="Enter Contract Address e.g: 0x.." />,
         <Button value="from" action="/token">
@@ -201,8 +200,7 @@ app.frame("/methods", async (c) => {
   }
 
   return c.res({
-    // image: <SwapImage text="Swap Token for ETH" />,
-    image: dummyImage,
+    image: <MainSwapImage token2={token} />,
     intents: [
       <TextInput placeholder="Enter Token Address e.g: 0x.." />,
       <Button action="/token" value="to">
@@ -219,7 +217,8 @@ app.frame("/token", analytics, async (c: StartFrameContext) => {
   let method = buttonValue;
 
   if (!method) method = "from";
-  if (!ca) ca = DEFAULT_TOKEN_CA;
+  // if (!ca) ca = DEFAULT_TOKEN_CA;
+  if(!ca) throw new Error("Token Missing")
   console.log({ ca });
   console.log({ method });
   return handleTokenDetails(c, ca, method);
@@ -246,32 +245,55 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
 
   const baseUrl = `https://arbitrum.api.0x.org/swap/v1/price?`;
   const eth = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
-  let token1 = method === "from" ? ca : eth;
-  let token2 = method === "from" ? eth : ca;
-  let tokenPriceData = await getTokenPrice(ca);
+  let token1 = method === "from" ? eth : ca;
+  let token2 = method === "from" ? ca : eth;
+
+  let token1PriceData: TokenDetails | null = null;
+  let token2PriceData: TokenDetails | null = null;
+  let res: Response | null = null;
+
+
 
   const params = new URLSearchParams({
-    buyToken: token1,
-    sellToken: token2,
+    sellToken: token1,
+    buyToken: token2,
     sellAmount: parseEther(tokenAmount).toString(),
   }).toString();
 
-  const res = await fetch(baseUrl + params, {
+
+
+
+  // fs.writeFileSync("price.json", JSON.stringify(priceData, null, 2));
+  const fetcher = fetch(baseUrl + params, {
     headers: { "0x-api-key": process.env.ZEROX_API_KEY || "" },
   });
 
+
+  if (method === "from") {
+    [token1PriceData, token2PriceData, res] = await Promise.all([
+      getTokenPrice(),
+      getTokenPrice(ca),
+      fetcher
+    ]);
+    if (!token1PriceData || !token2PriceData)
+      throw new Error("Could not get token1 or token2 from moralis");
+    token1PriceData.tokenSymbol = "ETH";
+  } else {
+    [token1PriceData, token2PriceData, res] = await Promise.all([
+      getTokenPrice(ca),
+      getTokenPrice(),
+      fetcher
+    ]);
+    if (!token1PriceData || !token2PriceData)
+      throw new Error("Could not get token1 or token2 from moralis");
+    token2PriceData.tokenSymbol = "ETH";
+  }
+
   const priceData = (await res.json()) as ZeroxSwapPriceData;
-
-  // fs.writeFileSync("price.json", JSON.stringify(priceData, null, 2));
-
   const tokenAmountReceived = `${
     Number(priceData.price) * Number(tokenAmount)
   }`;
-  const ethAmountInUsd = getEthPrice(
-    tokenPriceData?.nativePrice!,
-    tokenPriceData?.usdPrice!,
-    tokenAmountAsNumber
-  );
+
 
 
   const action =
@@ -284,12 +306,11 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
   return c.res({
     action,
     image: (
-      <PreviewImage
-        method={method}
-        ethInUsd={ethAmountInUsd}
-        token={tokenPriceData!}
-        amountInEth={tokenAmount}
-        amountReceived={tokenAmountReceived}
+      <MainSwapImage
+        sendAmount={tokenAmount}
+        receiveAmount={tokenAmountReceived}
+        token1={token1PriceData}
+        token2={token2PriceData}
       />
     ),
     intents: [
@@ -322,12 +343,53 @@ app.frame("/approved/:token1/:token2/:amount", async (c) => {
   console.log({ token1, token2, amount });
   if (!token1 || !amount) throw new Error("Token 1 not defined");
 
+
   const transactionTarget = `/sell/${token1}/${token2}/${amount}`;
-  console.log({transactionTarget})
+  console.log({ transactionTarget })
+  let token1PriceData: TokenDetails | null = null;
+  let token2PriceData: TokenDetails | null = null;
+  let res: Response | null = null;
+
+  const baseUrl = `https://arbitrum.api.0x.org/swap/v1/price?`;
+  const params = new URLSearchParams({
+    sellToken: token1,
+    buyToken: token2,
+    sellAmount: parseEther(amount).toString(),
+  }).toString();
+
+
+  const fetcher = fetch(baseUrl + params, {
+    headers: { "0x-api-key": process.env.ZEROX_API_KEY || "" },
+  });
+
+  if (token2 === ETHEREUM_ADDRESS) {
+    [token1PriceData, token2PriceData,res] = await Promise.all([
+      getTokenPrice(token1),
+      getTokenPrice(),
+      fetcher
+    ]);
+    if (!token1PriceData || !token2PriceData)
+      throw new Error("Could not get token1 or token2 from moralis");
+    token2PriceData.tokenSymbol = "ETH";
+  } else {
+    [token1PriceData, token2PriceData, res] = await Promise.all([
+      getTokenPrice(token1),
+      getTokenPrice(token2),
+      fetcher
+    ]);
+    if (!token1PriceData || !token2PriceData)
+      throw new Error("Could not get token1 or token2 from moralis");
+  }
+
+  const priceData = (await res.json()) as ZeroxSwapPriceData;
+  const tokenAmountReceived = `${
+    Number(priceData.price) * Number(amount)
+  }`;
+
 
   return c.res({
     action: "/finish",
-    image: "https://i.postimg.cc/Kv3j32RY/start.png",
+    image: <MainSwapImage token1={token1PriceData} token2={token2PriceData} sendAmount={amount} receiveAmount={tokenAmountReceived}/>,
     intents: [
       <Button.Transaction target={transactionTarget}>
         Confirm
@@ -346,8 +408,8 @@ app.transaction("/sell/:token1/:token2/:amount", async (c) => {
   if (!token1 || !token2 || !amount) throw new Error("Values missing");
 
   const params = new URLSearchParams({
-    buyToken: token1,
-    sellToken: token2,
+    sellToken: token1,
+    buyToken: token2,
     sellAmount: parseEther(amount).toString(),
     feeRecipient: "0x8ff47879d9eE072b593604b8b3009577Ff7d6809",
     buyTokenPercentageFee: "0.01",
@@ -359,7 +421,7 @@ app.transaction("/sell/:token1/:token2/:amount", async (c) => {
   });
 
   const order = (await res.json()) as ZeroxSwapQuoteOrder;
-  
+
 
 
     return c.send({
@@ -424,11 +486,13 @@ app.transaction(
 app.frame("/finish", analytics, async (c: StartFrameContext) => {
   const { transactionId, frameData } = c;
   console.log("User transacted", frameData?.fid);
+  const transactionHash = `https://arbiscan.io/tx/${transactionId}`
+  console.log({transactionHash})
 
   return c.res({
     image: "https://pbs.twimg.com/media/F4M9IOlWwAEgTDf.jpg",
     intents: [
-      <Button.Link href={`https://arbiscan.io/tx/${transactionId}`}>
+      <Button.Link href={transactionHash}>
         View Transaction
       </Button.Link>,
       <Button.Reset>Home</Button.Reset>,
@@ -467,6 +531,126 @@ function SwapImage({ text }: { text: string }) {
   );
 }
 
+function MainSwapImage({
+  token1,
+  token2,
+  sendAmount,
+  receiveAmount,
+  error,
+  active
+}: {
+  token1?: TokenDetails,
+  token2?: TokenDetails,
+    sendAmount?: string | number,
+    receiveAmount?: string | number,
+    error?: string
+  active?: string
+
+  }) {
+    const dummyImage = "https://i.imgur.com/mt3nbeI.jpg";
+
+
+    return (
+      <div
+        style={{
+          height: "100%",
+          width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          fontSize: 32,
+          fontWeight: 600,
+          padding: "10px 50px",
+        }}
+        tw="bg-slate-900 text-white"
+      >
+        <span tw="text-6xl my-4">Preview Transaction </span>
+        <div
+          tw="flex items-center  mx-auto justify-between max-w-4/5 w-full flex-col"
+          style={{
+            gap: "10px",
+          }}
+        >
+          <div tw="flex justify-between py-2  w-full px-4">
+            <span tw="text-center text-gray-500 flex">From</span>
+            <span tw="text-center text-gray-500">To</span>
+          </div>
+          <div tw="flex justify-between py-2  w-full">
+            <div tw="rounded-full flex w-[100px] h-[100px] overflow-hidden ">
+              <img
+                src={token1 ? token1.tokenLogo : dummyImage}
+                width={"100%"}
+                height={"100%"}
+                style={{
+                  objectFit: "cover",
+                }}
+              />
+            </div>
+            <span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="100"
+                height="100"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M18 8L22 12L18 16" />
+                <path d="M2 12H22" />
+              </svg>{" "}
+            </span>
+            <div tw="rounded-full flex w-[100px] h-[100px] overflow-hidden ">
+              <img
+                src={token2 ? token2.tokenLogo : dummyImage}
+                width={"100%"}
+                height={"100%"}
+                style={{
+                  objectFit: "cover",
+                }}
+              />
+            </div>
+          </div>
+
+          <div tw="flex w-full justify-between px-4">
+            <span>{token1 ? token1.tokenSymbol : "??"}</span>
+            <span>{token2 ? token2.tokenSymbol : "??"}</span>
+          </div>
+        </div>
+        <hr tw="py-[1px] w-full bg-gray-800" />
+
+        <div tw="flex justify-between py-2">
+          <div tw="text-gray-400">You spend</div>
+          <div tw="flex text-4xl items-center" style={{ gap: "4px" }}>
+            {/* <img src={token.tokenLogo} width={50} height={50} /> */}
+            <span>You receive</span>
+          </div>
+        </div>
+        <div tw="flex justify-between py-2">
+          <span tw="text-gray-400 flex gap-2">{`${sendAmount ?? "??"} ${
+            token1 ? token1.tokenSymbol : "??"
+          }`}</span>
+          <span tw="text-4xl flex" style={{ gap: "10px" }}>
+            <span>{receiveAmount ?? "??"} </span>
+            <span>{token2 ? token2.tokenSymbol : "??"}</span>
+          </span>
+        </div>
+
+        <div tw="flex justify-between py-2 items-center">
+          <span tw="text-gray-400">Chain</span>
+          <span style={{ gap: "4px" }} tw="flex items-center">
+            <img
+              src="https://i.ibb.co/BrQLkcw/arbitrum-arb-logo.png"
+              width={50}
+              height={50}
+            />
+            <span>Arbitrum</span>
+          </span>
+        </div>
+      </div>
+    );
+  }
 function PreviewImage({
   method,
   amountReceived,

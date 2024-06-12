@@ -4,6 +4,8 @@ import { config } from "dotenv"
 
 config()
 
+
+
 export interface TokenDetails {
   tokenName:               string;
   tokenSymbol:             string;
@@ -22,7 +24,6 @@ export interface TokenDetails {
 }
 
 
-const chain = EvmChain.ARBITRUM;
 
 export function formatCurrency(
   input: number,
@@ -52,9 +53,19 @@ export function formatCurrency(
 }
 
 export async function getTokenPrice(
-  contractAddress: string
+  contractAddress?: string ,
 ) {
-  const moralisApiKey = process.env.MORALIS_API_KEY;
+  let eth = false
+  let chain = EvmChain.ARBITRUM;
+
+  if (!contractAddress) {
+    eth = true
+  contractAddress = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+    chain = EvmChain.ETHEREUM
+  }
+  console.log({contractAddress, chain})
+
+    const moralisApiKey = process.env.MORALIS_API_KEY;
   if (!moralisApiKey) {
     throw new Error("Moralis api key missing");
   }
@@ -68,7 +79,7 @@ export async function getTokenPrice(
   }
 try {
 
-  console.log({contractAddress})
+
   const response = await Moralis.EvmApi.token.getTokenPrice({
     chain,
     include: "percent_change",
@@ -76,6 +87,7 @@ try {
   });
 
   const priceData = response.result;
+  if(eth) priceData.tokenLogo = "https://i.ibb.co/Mg8Yd81/eth.png";
   // fs.writeFileSync('token.json', JSON.stringify(priceData))
   return priceData as unknown as TokenDetails;
 } catch (error) {
