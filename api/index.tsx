@@ -160,7 +160,8 @@ async function invalidOrMissingCaError(
 
 
 
-const dummyImage = "https://i.postimg.cc/Kv3j32RY/start.png";
+// const dummyImage = "https://i.postimg.cc/Kv3j32RY/start.png";
+const dummyImage = "https://i.ibb.co/VYCmKgj/dummy-Image.jpg";
 
 app.frame("/", analytics, async (c: StartFrameContext) => {
   return c.res({
@@ -463,6 +464,7 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
         token2={token2PriceData}
       />
     ),
+
     intents: [
       <Button.Transaction target={transactionTarget}>
         {method == "from" ? "Confirm" : "Approve"}
@@ -710,7 +712,7 @@ function MainSwapImage({
   active?: string
   error?: boolean
 }) {
-  const dummyImage = "https://i.imgur.com/mt3nbeI.jpg";
+  // const dummyImage = "https://i.imgur.com/mt3nbeI.jpg";
   if (!heading) heading = 'Preview Swap'
 
 
