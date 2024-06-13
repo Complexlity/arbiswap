@@ -209,7 +209,7 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
     return c.res({
       image: <MainSwapImage />,
       intents: [
-        <TextInput placeholder="Enter token 1" />,
+        <TextInput placeholder="Token 1 CA" />,
         <Button action="/swap/token1/token2/ amount">Next</Button>,
         <Button.Reset>Back</Button.Reset>
       ],
@@ -224,7 +224,7 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
       error={!!error}
       />,
       intents: [
-        <TextInput placeholder="Enter token 2" />,
+        <TextInput placeholder="Token 2 CA" />,
         <Button action={`/swap/${token1}/token2/amount`}>Next</Button>,
         <Button action="/swap/token1/token2/amount">Back</Button>,
       ],
