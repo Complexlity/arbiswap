@@ -220,7 +220,7 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
     console.log("Token 2 not defined");
     return c.res({
       image: <MainSwapImage token1={token1PriceData} message={error}
-      error={!error}
+      error={!!error}
       />,
       intents: [
         <TextInput placeholder="Enter token 2" />,
@@ -273,7 +273,7 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
     error = "Swap pool not found"
     return c.res({
       image: (
-        <MainSwapImage token1={token1PriceData} token2={token2PriceData} message={error} error={!error} />
+        <MainSwapImage token1={token1PriceData} token2={token2PriceData} message={error} error={!!error} />
       ),
       intents: [
         <TextInput placeholder={`Amount in ${token1PriceData.tokenSymbol}`} />,
@@ -685,15 +685,16 @@ function MainSwapImage({
 }: {
   token1?: TokenDetails,
   token2?: TokenDetails,
-    sendAmount?: string | number,
-    receiveAmount?: string | number,
-    message?: string
-    heading?:string
+  sendAmount?: string | number,
+  receiveAmount?: string | number,
+  message?: string
+  heading?: string
   active?: string
   error?: boolean
-  }) {
+}) {
   const dummyImage = "https://i.imgur.com/mt3nbeI.jpg";
-  if(!heading) heading = 'Preview Swap'
+  if (!heading) heading = 'Preview Swap'
+  console.log({error})
 
 
     return (
