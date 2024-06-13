@@ -456,7 +456,7 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
       <Button.Transaction target={transactionTarget}>
         {method == "from" ? "Confirm" : "Approve"}
       </Button.Transaction>,
-      method == "from" ? <Button action={`/exact_token/${ca}`}>Back</Button> : <Button.Reset>Cancel</Button.Reset>
+      method == "from" ? <Button action={`/exact_token/${ca}`}>Back</Button> : <Button value="to" action="/methods">Cancel</Button>
     ],
   });
 });
