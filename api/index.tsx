@@ -162,17 +162,17 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
     return c.res({
       image: <MainSwapImage token1={token1PriceData} token2={token2PriceData} />,
       intents: [
-        <TextInput placeholder={`Amount in token1`} />,
+        <TextInput placeholder={`Amount in ${token1PriceData.tokenSymbol}`} />,
         <Button action={`/swap/${token1}/${token2}/amount`}>
           Next
         </Button>,
-        <Button action={`/swap/token1=${token1}/token2/amount`}>Back</Button>,
+        <Button action={`/swap/${token1}/token2/amount`}>Back</Button>,
       ],
     });
   }
 
   if(token1 === "token1" || token2 === "token2" || amount === "amount") throw new Error("Not allowed")
-  const action = `/approved/${token2}/${token1}/${amount}`;
+  const action = `/approved/${token1}/${token2}/${amount}`;
 
   const baseUrl = `https://arbitrum.api.0x.org/swap/v1/price?`;
   const params = new URLSearchParams({
