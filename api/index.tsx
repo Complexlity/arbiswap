@@ -145,7 +145,7 @@ async function invalidOrMissingCaError(
     return c.res({
       image: (
         //@ts-expect-error
-        <MainSwapImage token2={ethDetails} heading={heading} message={error} />
+        <MainSwapImage token2={ethDetails} heading={heading} message={error} error={true} />
       ),
       intents: [
         <TextInput placeholder="Enter Contract Address e.g: 0x.." />,
