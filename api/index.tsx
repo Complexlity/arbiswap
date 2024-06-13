@@ -248,14 +248,25 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
     });
   }
 
-  if(token1 === "token1" || token2 === "token2" || amount === "amount") throw new Error("Not allowed")
-  const action = `/approved/${token1}/${token2}/${amount}`;
+  if (token1 === "token1" || token2 === "token2" || amount === "amount") throw new Error("Not allowed")
+    let amountAsNumber = Number(amount);
+    if (
+      isNaN(amountAsNumber) ||
+      amountAsNumber == 0
+    ) {
+      amount = "1";
+      amountAsNumber = Number(amount);
+    }
+
+
+
+  const action = `/approved/${token1}/${token2}/${amountAsNumber}`;
 
   const baseUrl = `https://arbitrum.api.0x.org/swap/v1/price?`;
   const params = new URLSearchParams({
     sellToken: token1,
     buyToken: token2,
-    sellAmount: parseEther(amount).toString(),
+    sellAmount: parseEther(`${amountAsNumber}`).toString(),
   }).toString();
 
   const fetcher = fetch(baseUrl + params, {
@@ -284,14 +295,14 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
 
   }
   const priceData = (await res.json()) as ZeroxSwapPriceData;
-  const tokenAmountReceived = `${Number(priceData.price) * Number(amount)}`;
+  const tokenAmountReceived = Number(priceData.price) * amountAsNumber;
 
 
   return c.res({
     action,
     image: <MainSwapImage
       heading={`Approve Spending ${token1PriceData.tokenSymbol}`}
-      token1={token1PriceData} token2={token2PriceData} sendAmount={amount} receiveAmount={tokenAmountReceived} />,
+      token1={token1PriceData} token2={token2PriceData} sendAmount={amountAsNumber} receiveAmount={tokenAmountReceived} />,
     intents: [
       <Button.Transaction target={`/approve/${token1}`}>
         Approve
@@ -430,8 +441,7 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
   }
 
   const priceData = (await res.json()) as ZeroxSwapPriceData;
-  const tokenAmountReceived = `${Number(priceData.price) * Number(tokenAmount)
-    }`;
+  const tokenAmountReceived = Number(priceData.price) * tokenAmountAsNumber;
 
 
 
@@ -444,9 +454,10 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
     method === "from" ? `/tx/${method}/${ca}/${tokenAmount}` : `/approve/${ca}`;
   return c.res({
     action,
+
     image: (
       <MainSwapImage
-        sendAmount={tokenAmount}
+        sendAmount={tokenAmountAsNumber}
         receiveAmount={tokenAmountReceived}
         token1={token1PriceData}
         token2={token2PriceData}
@@ -465,9 +476,17 @@ app.frame("/approved/:token1/:token2/:amount", async (c) => {
   console.log("I am in approved");
   const token1 = c.req.param("token1");
   const token2 = c.req.param("token2") ?? ETHEREUM_ADDRESS;
-  const amount = c.req.param("amount");
+  let amount = c.req.param("amount");
+
   console.log({ token1, token2, amount });
   if (!token1 || !amount) throw new Error("Token 1 not defined");
+    let amountAsNumber = Number(amount);
+    if (isNaN(amountAsNumber) || amountAsNumber == 0) {
+      amount = "1";
+      amountAsNumber = Number(amount);
+    }
+
+
 
   const transactionTarget = `/sell/${token1}/${token2}/${amount}`;
   console.log({ transactionTarget });
@@ -506,7 +525,7 @@ app.frame("/approved/:token1/:token2/:amount", async (c) => {
   }
 
   const priceData = (await res.json()) as ZeroxSwapPriceData;
-  const tokenAmountReceived = `${Number(priceData.price) * Number(amount)}`;
+  const tokenAmountReceived = Number(priceData.price) * Number(amount);
 
   return c.res({
     action: "/finish",
@@ -515,7 +534,7 @@ app.frame("/approved/:token1/:token2/:amount", async (c) => {
         heading={"Confirm Swap"}
         token1={token1PriceData}
         token2={token2PriceData}
-        sendAmount={amount}
+        sendAmount={amountAsNumber}
         receiveAmount={tokenAmountReceived}
       />
     ),
@@ -680,13 +699,12 @@ function MainSwapImage({
   receiveAmount,
   message,
   heading,
-  active,
   error
 }: {
   token1?: TokenDetails,
   token2?: TokenDetails,
-  sendAmount?: string | number,
-  receiveAmount?: string | number,
+  sendAmount?: number,
+  receiveAmount?: number,
   message?: string
   heading?: string
   active?: string
@@ -694,7 +712,6 @@ function MainSwapImage({
 }) {
   const dummyImage = "https://i.imgur.com/mt3nbeI.jpg";
   if (!heading) heading = 'Preview Swap'
-  console.log({error})
 
 
     return (
@@ -775,11 +792,11 @@ function MainSwapImage({
           </div>
         </div>
         <div tw="flex justify-between py-2">
-          <span tw="text-gray-400 flex gap-2">{`${sendAmount ?? "??"} ${
+          <span tw="text-gray-400 flex gap-2">{`${sendAmount ? sendAmount.toFixed(2) :  "??"} ${
             token1 ? token1.tokenSymbol : "??"
           }`}</span>
           <span tw="text-4xl flex" style={{ gap: "10px" }}>
-            <span>{receiveAmount ?? "??"} </span>
+            <span>{receiveAmount ?receiveAmount.toFixed(2) : "??"} </span>
             <span>{token2 ? token2.tokenSymbol : "??"}</span>
           </span>
         </div>
