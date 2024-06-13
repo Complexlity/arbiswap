@@ -96,6 +96,7 @@ async function handleTokenDetails(
 
   return c.res({
     image: <MainSwapImage heading={heading} token1={token1} token2={token2}
+      error={true}
 
     />,
     // image: dummyImage,
@@ -127,7 +128,7 @@ async function invalidOrMissingCaError(
     return c.res({
       image: (
         //@ts-expect-error
-        <MainSwapImage token1={ethDetails} heading={heading} message={error} />
+        <MainSwapImage token1={ethDetails} heading={heading} message={error} error={true} />
       ),
       intents: [
         <TextInput placeholder="Enter Token Address e.g: 0x.." />,
@@ -155,11 +156,6 @@ async function invalidOrMissingCaError(
       ],
     });
   }
-
-
-
-
-
 }
 
 
@@ -223,7 +219,9 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
       ("Token 1 price data missing");
     console.log("Token 2 not defined");
     return c.res({
-      image: <MainSwapImage token1={token1PriceData} message={error} />,
+      image: <MainSwapImage token1={token1PriceData} message={error}
+      error={!error}
+      />,
       intents: [
         <TextInput placeholder="Enter token 2" />,
         <Button action={`/swap/${token1}/token2/amount`}>Next</Button>,
@@ -275,7 +273,7 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
     error = "Swap pool not found"
     return c.res({
       image: (
-        <MainSwapImage token1={token1PriceData} token2={token2PriceData} message={error} />
+        <MainSwapImage token1={token1PriceData} token2={token2PriceData} message={error} error={!error} />
       ),
       intents: [
         <TextInput placeholder={`Amount in ${token1PriceData.tokenSymbol}`} />,
