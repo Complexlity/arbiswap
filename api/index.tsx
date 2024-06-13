@@ -101,7 +101,7 @@ async function handleTokenDetails(
     />,
     // image: dummyImage,
     intents: [
-      <TextInput placeholder={`Amount(in ${token1.tokenSymbol}`} />,
+      <TextInput placeholder={`Amount (in ${token1.tokenSymbol})`} />,
       <Button value={method} action={`/confirm/${ca}`}>
         Proceed
       </Button>,
