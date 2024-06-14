@@ -693,8 +693,13 @@ function S({
   t2?: TokenDetails,
   sA?: number,
   rA?: number,
-}) {
-
+  }) {
+  const t1Logo = t1 ? t1.tokenLogo : dummyImage
+  const t2Logo = t2 ? t2.tokenLogo : dummyImage;
+  const t1Symbol = t1 ? t1.tokenSymbol : "??";
+  const t2Symbol = t2 ? t2.tokenSymbol : "??";
+  const saValue = sA ? sA.toFixed(2) : "??"
+  const raValue = rA ? rA.toFixed(2) : "??";
 
     return (
       <div
@@ -716,14 +721,10 @@ function S({
             gap: "10px",
           }}
         >
-          <div tw="flex justify-between py-2 px-4">
-            <span tw="text-center text-gray-500 flex">From</span>
-            <span tw="text-center text-gray-500">To</span>
-          </div>
           <div tw="flex justify-between py-2  w-full">
             <div tw="rounded-full flex w-[100px] h-[100px] overflow-hidden ">
               <img
-                src={t1 ? t1.tokenLogo : dummyImage}
+                src={t1Logo}
                 width={"100%"}
                 height={"100%"}
                 style={{
@@ -749,7 +750,7 @@ function S({
             </span>
             <div tw="rounded-full flex w-[100px] h-[100px] overflow-hidden ">
               <img
-                src={t2 ? t2.tokenLogo : dummyImage}
+                src={t2Logo}
                 width={"100%"}
                 height={"100%"}
                 style={{
@@ -760,8 +761,8 @@ function S({
           </div>
 
           <div tw="flex w-full justify-between px-4">
-            <span>{t1 ? t1.tokenSymbol : "??"}</span>
-            <span>{t2 ? t2.tokenSymbol : "??"}</span>
+            <span>{t1Symbol}</span>
+            <span>{t2Symbol}</span>
           </div>
         </div>
         <hr tw="py-[1px] w-full bg-gray-800" />
@@ -774,12 +775,10 @@ function S({
           </div>
         </div>
         <div tw="flex justify-between py-2">
-          <span tw="text-gray-400 flex gap-2">{`${sA ? sA.toFixed(2) :  "??"} ${
-            t1 ? t1.tokenSymbol : "??"
-          }`}</span>
+          <span tw="text-gray-400 flex gap-2">{`${saValue} ${t1Symbol}`}</span>
           <span tw="text-4xl flex" style={{ gap: "10px" }}>
-            <span>{rA ?rA.toFixed(2) : "??"} </span>
-            <span>{t2 ? t2.tokenSymbol : "??"}</span>
+            <span>{raValue} </span>
+            <span>{t2Symbol}</span>
           </span>
         </div>
 
