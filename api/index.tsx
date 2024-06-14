@@ -464,7 +464,7 @@ app.frame("/approved/:token1/:token2/:amount", async (c) => {
   const fetcher = fetch(baseUrl + params, {
     headers: { "0x-api-key": process.env.ZEROX_API_KEY || "" },
   });
-
+let hasEth = false
   if (token2 === ETHEREUM_ADDRESS) {
     [token1PriceData, token2PriceData, res] = await Promise.all([
       getTokenPrice(token1),
@@ -482,10 +482,12 @@ app.frame("/approved/:token1/:token2/:amount", async (c) => {
     ]);
     if (!token1PriceData || !token2PriceData)
       throw new Error("Could not get token1 or token2 from moralis");
+    hasEth = true;
   }
 
   const priceData = (await res.json()) as ZeroxSwapPriceData;
   const tokenAmountReceived = Number(priceData.price) * Number(amount);
+
 
   return c.res({
     action: "/finish",
@@ -501,9 +503,13 @@ app.frame("/approved/:token1/:token2/:amount", async (c) => {
       <Button.Transaction target={transactionTarget}>
         Confirm Swap
       </Button.Transaction>,
-      <Button value={"to"} action="/methods">
-        Cancel ❌
-      </Button>,
+      hasEth ? (
+        <Button value={"to"} action="/methods">
+          Cancel ❌
+        </Button>
+      ) : (
+        <Button action={`/s/${token1}/${token2}/amount`}>Cancel ❌</Button>
+      ),
     ],
   });
 });
