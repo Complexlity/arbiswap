@@ -159,12 +159,12 @@ app.frame("/", analytics, async (c: StartFrameContext) => {
     intents: [
       <Button value={"from"}>ETH-TOKEN</Button>,
       <Button value={"to"}>TOKEN-ETH</Button>,
-      <Button action="/swap/token1/token2/amount">TOKEN-TOKEN</Button>,
+      <Button action="/s/token1/token2/amount">TOKEN-TOKEN</Button>,
     ],
   });
 });
 
-app.frame("/swap/:token1/:token2/:amount", async (c) => {
+app.frame("/s/:token1/:token2/:amount", async (c) => {
   const { inputText, url } = c;
   let token1PriceData: TokenDetails | null = null;
   let token2PriceData: TokenDetails | null = null;
@@ -197,7 +197,7 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
       image: <S />,
       intents: [
         <TextInput placeholder="Token 1 CA" />,
-        <Button action="/swap/token1/token2/ amount">Next ➡️</Button>,
+        <Button action="/s/token1/token2/ amount">Next ➡️</Button>,
         <Button.Reset>⬅️ Back</Button.Reset>,
       ],
     });
@@ -209,8 +209,8 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
       image: <S t1={token1PriceData} />,
       intents: [
         <TextInput placeholder="Token 2 CA" />,
-        <Button action={`/swap/${token1}/token2/amount`}>Next ➡️</Button>,
-        <Button action="/swap/token1/token2/amount">⬅️ Back</Button>,
+        <Button action={`/s/${token1}/token2/amount`}>Next ➡️</Button>,
+        <Button action="/s/token1/token2/amount">⬅️ Back</Button>,
       ],
     });
   } else if (amount === "amount") {
@@ -225,8 +225,8 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
       image: <S t1={token1PriceData} t2={token2PriceData} />,
       intents: [
         <TextInput placeholder={`Amount in ${token1PriceData.tokenSymbol}`} />,
-        <Button action={`/swap/${token1}/${token2}/amount`}>Next ➡️</Button>,
-        <Button action={`/swap/${token1}/token2/amount`}>⬅️ Back</Button>,
+        <Button action={`/s/${token1}/${token2}/amount`}>Next ➡️</Button>,
+        <Button action={`/s/${token1}/token2/amount`}>⬅️ Back</Button>,
       ],
     });
   }
@@ -266,8 +266,8 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
       image: <S t1={token1PriceData} t2={token2PriceData} />,
       intents: [
         <TextInput placeholder={`Amount in ${token1PriceData.tokenSymbol}`} />,
-        <Button action={`/swap/${token1}/${token2}/amount`}>Next ➡️</Button>,
-        <Button action={`/swap/${token1}/${token2}/amount`}>⬅️ Back</Button>,
+        <Button action={`/s/${token1}/${token2}/amount`}>Next ➡️</Button>,
+        <Button action={`/s/${token1}/${token2}/amount`}>⬅️ Back</Button>,
       ],
     });
   }
@@ -288,7 +288,7 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
       <Button.Transaction target={`/approve/${token1}`}>
         Approve {token1PriceData.tokenSymbol}
       </Button.Transaction>,
-      <Button action={`/swap/${token1}/${token2}/amount`}>⬅️ Back</Button>,
+      <Button action={`/s/${token1}/${token2}/amount`}>⬅️ Back</Button>,
     ],
   });
 });
