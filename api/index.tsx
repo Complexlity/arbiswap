@@ -95,9 +95,7 @@ async function handleTokenDetails(
 
 
   return c.res({
-    image: <MainSwapImage heading={heading} token1={token1} token2={token2}
-      error={true}
-
+    image: <S t1={token1} t2={token2}
     />,
     // image: dummyImage,
     intents: [
@@ -128,7 +126,7 @@ async function invalidOrMissingCaError(
     return c.res({
       image: (
         //@ts-expect-error
-        <MainSwapImage token1={ethDetails} heading={heading} message={error} error={true} />
+        <S t1={ethDetails} heading={heading} message={error} error={true} />
       ),
       intents: [
         <TextInput placeholder="Enter Token Address e.g: 0x.." />,
@@ -145,7 +143,7 @@ async function invalidOrMissingCaError(
     return c.res({
       image: (
         //@ts-expect-error
-        <MainSwapImage token2={ethDetails} heading={heading} message={error} error={true} />
+        <S t2={ethDetails} heading={heading} message={error} error={true} />
       ),
       intents: [
         <TextInput placeholder="Enter Contract Address e.g: 0x.." />,
@@ -207,7 +205,7 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
   if (token1 === "token1") {
     console.log("Token 1 not defined");
     return c.res({
-      image: <MainSwapImage />,
+      image: <S />,
       intents: [
         <TextInput placeholder="Token 1 CA" />,
         <Button action="/swap/token1/token2/ amount">Next</Button>,
@@ -220,8 +218,7 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
       ("Token 1 price data missing");
     console.log("Token 2 not defined");
     return c.res({
-      image: <MainSwapImage token1={token1PriceData} message={error}
-      error={!!error}
+      image: <S t1={token1PriceData}
       />,
       intents: [
         <TextInput placeholder="Token 2 CA" />,
@@ -239,7 +236,7 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
     console.log("Amount not defined");
     return c.res({
       image: (
-        <MainSwapImage token1={token1PriceData} token2={token2PriceData} />
+        <S t1={token1PriceData} t2={token2PriceData} />
       ),
       intents: [
         <TextInput placeholder={`Amount in ${token1PriceData.tokenSymbol}`} />,
@@ -285,7 +282,7 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
     error = "Swap pool not found"
     return c.res({
       image: (
-        <MainSwapImage token1={token1PriceData} token2={token2PriceData} message={error} error={!!error} />
+        <S t1={token1PriceData} t2={token2PriceData} />
       ),
       intents: [
         <TextInput placeholder={`Amount in ${token1PriceData.tokenSymbol}`} />,
@@ -301,9 +298,8 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
 
   return c.res({
     action,
-    image: <MainSwapImage
-      heading={`Approve Spending ${token1PriceData.tokenSymbol}`}
-      token1={token1PriceData} token2={token2PriceData} sendAmount={amountAsNumber} receiveAmount={tokenAmountReceived} />,
+    image: <S
+      t1={token1PriceData} t2={token2PriceData} sA={amountAsNumber} rA={tokenAmountReceived} />,
     intents: [
       <Button.Transaction target={`/approve/${token1}`}>
         Approve
@@ -323,11 +319,8 @@ app.frame("/methods", async (c) => {
 
   if (buttonValue == "from") {
     return c.res({
-      image: <MainSwapImage
-        heading="Preview Purchase"
-        token1={token}
-        message="Leave blank for $ARB"
-        error={false}
+      image: <S
+        t1={token}
       />,
       intents: [
         <TextInput placeholder="Enter Contract Address e.g: 0x.." />,
@@ -340,11 +333,8 @@ app.frame("/methods", async (c) => {
   }
 
   return c.res({
-    image: <MainSwapImage
-    heading={"Preview Sell"}
-      token2={token}
-      message="Leave blank for $ARB"
-      error={false}
+    image: <S
+      t2={token}
     />,
     intents: [
       <TextInput placeholder="Enter Token Address e.g: 0x.." />,
@@ -457,11 +447,11 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
     action,
 
     image: (
-      <MainSwapImage
-        sendAmount={tokenAmountAsNumber}
-        receiveAmount={tokenAmountReceived}
-        token1={token1PriceData}
-        token2={token2PriceData}
+      <S
+        sA={tokenAmountAsNumber}
+        rA={tokenAmountReceived}
+        t1={token1PriceData}
+        t2={token2PriceData}
       />
     ),
 
@@ -532,12 +522,11 @@ app.frame("/approved/:token1/:token2/:amount", async (c) => {
   return c.res({
     action: "/finish",
     image: (
-      <MainSwapImage
-        heading={"Confirm Swap"}
-        token1={token1PriceData}
-        token2={token2PriceData}
-        sendAmount={amountAsNumber}
-        receiveAmount={tokenAmountReceived}
+      <S
+        t1={token1PriceData}
+        t2={token2PriceData}
+        sA={amountAsNumber}
+        rA={tokenAmountReceived}
       />
     ),
     intents: [
@@ -694,26 +683,17 @@ function SwapImage({ text }: { text: string }) {
   );
 }
 
-function MainSwapImage({
-  token1,
-  token2,
-  sendAmount,
-  receiveAmount,
-  message,
-  heading,
-  error
+function S({
+  t1: t1,
+  t2: t2,
+  sA: sA,
+  rA: rA,
 }: {
-  token1?: TokenDetails,
-  token2?: TokenDetails,
-  sendAmount?: number,
-  receiveAmount?: number,
-  message?: string
-  heading?: string
-  active?: string
-  error?: boolean
+  t1?: TokenDetails,
+  t2?: TokenDetails,
+  sA?: number,
+  rA?: number,
 }) {
-  // const dummyImage = "https://i.imgur.com/mt3nbeI.jpg";
-  if (!heading) heading = 'Preview Swap'
 
 
     return (
@@ -729,21 +709,21 @@ function MainSwapImage({
         }}
         tw="bg-slate-900 text-white"
       >
-        <span tw="text-6xl my-4">{heading}</span>
+        <span tw="text-6xl my-4">Preview Swap</span>
         <div
           tw="flex items-center  mx-auto justify-between max-w-4/5 w-full flex-col"
           style={{
             gap: "10px",
           }}
         >
-          <div tw="flex justify-between py-2  w-full px-4">
+          <div tw="flex justify-between py-2 px-4">
             <span tw="text-center text-gray-500 flex">From</span>
             <span tw="text-center text-gray-500">To</span>
           </div>
           <div tw="flex justify-between py-2  w-full">
             <div tw="rounded-full flex w-[100px] h-[100px] overflow-hidden ">
               <img
-                src={token1 ? token1.tokenLogo : dummyImage}
+                src={t1 ? t1.tokenLogo : dummyImage}
                 width={"100%"}
                 height={"100%"}
                 style={{
@@ -769,7 +749,7 @@ function MainSwapImage({
             </span>
             <div tw="rounded-full flex w-[100px] h-[100px] overflow-hidden ">
               <img
-                src={token2 ? token2.tokenLogo : dummyImage}
+                src={t2 ? t2.tokenLogo : dummyImage}
                 width={"100%"}
                 height={"100%"}
                 style={{
@@ -780,8 +760,8 @@ function MainSwapImage({
           </div>
 
           <div tw="flex w-full justify-between px-4">
-            <span>{token1 ? token1.tokenSymbol : "??"}</span>
-            <span>{token2 ? token2.tokenSymbol : "??"}</span>
+            <span>{t1 ? t1.tokenSymbol : "??"}</span>
+            <span>{t2 ? t2.tokenSymbol : "??"}</span>
           </div>
         </div>
         <hr tw="py-[1px] w-full bg-gray-800" />
@@ -794,12 +774,12 @@ function MainSwapImage({
           </div>
         </div>
         <div tw="flex justify-between py-2">
-          <span tw="text-gray-400 flex gap-2">{`${sendAmount ? sendAmount.toFixed(2) :  "??"} ${
-            token1 ? token1.tokenSymbol : "??"
+          <span tw="text-gray-400 flex gap-2">{`${sA ? sA.toFixed(2) :  "??"} ${
+            t1 ? t1.tokenSymbol : "??"
           }`}</span>
           <span tw="text-4xl flex" style={{ gap: "10px" }}>
-            <span>{receiveAmount ?receiveAmount.toFixed(2) : "??"} </span>
-            <span>{token2 ? token2.tokenSymbol : "??"}</span>
+            <span>{rA ?rA.toFixed(2) : "??"} </span>
+            <span>{t2 ? t2.tokenSymbol : "??"}</span>
           </span>
         </div>
 
@@ -814,12 +794,6 @@ function MainSwapImage({
             <span>Arbitrum</span>
           </span>
         </div>
-        {message ? <div tw="absolute bottom-10 w-full flex justify-center rounded-full mx-auto">
-          <span tw={`w-3/5 flex justify-center rounded-xl py-2 ${error ? "bg-red-400" : "bg-green-600"}`}>
-            {message}
-          </span>
-        </div>
-        : <div tw="hidden"></div>}
       </div>
     );
   }

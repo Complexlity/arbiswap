@@ -13,6 +13,7 @@
     "dotenv": "^16.4.5",
     "frog": "latest",
     "hono": "^4",
+    "lz-string": "^1.5.0",
     "moralis": "^2.26.2",
     "pinata-fdk": "^3.10.2",
     "viem": "^2.13.3"
