@@ -98,10 +98,10 @@ async function handleTokenDetails(
     intents: [
       <TextInput placeholder={`Amount (in ${token1.tokenSymbol})`} />,
       <Button value={method} action={`/confirm/${ca}`}>
-        Proceed
+        Next ➡️
       </Button>,
       <Button value={method} action="/methods">
-        Back
+        ⬅️ Back
       </Button>,
     ],
   });
@@ -125,25 +125,23 @@ async function invalidOrMissingCaError(
       intents: [
         <TextInput placeholder="Enter Token Address e.g: 0x.." />,
         <Button action="/token" value="from">
-          Proceed
+          Next ➡️
         </Button>,
         <Button value="from" action="/methods">
-          Back
+          ⬅️ Back
         </Button>,
       ],
     });
   } else {
     return c.res({
-      image: (
-        <S t2={ethDetails} />
-      ),
+      image: <S t2={ethDetails} />,
       intents: [
         <TextInput placeholder="Enter Contract Address e.g: 0x.." />,
         <Button value="to" action="/token">
-          Proceed
+          Next ➡️
         </Button>,
         <Button value="to" action="/methods">
-          Back
+          ⬅️ Back
         </Button>,
       ],
     });
