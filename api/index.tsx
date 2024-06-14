@@ -199,8 +199,8 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
       image: <S />,
       intents: [
         <TextInput placeholder="Token 1 CA" />,
-        <Button action="/swap/token1/token2/ amount">Next</Button>,
-        <Button.Reset>Back</Button.Reset>,
+        <Button action="/swap/token1/token2/ amount">Next ➡️</Button>,
+        <Button.Reset>⬅️ Back</Button.Reset>,
       ],
     });
   } else if (token2 === "token2") {
@@ -211,8 +211,8 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
       image: <S t1={token1PriceData} />,
       intents: [
         <TextInput placeholder="Token 2 CA" />,
-        <Button action={`/swap/${token1}/token2/amount`}>Next</Button>,
-        <Button action="/swap/token1/token2/amount">Back</Button>,
+        <Button action={`/swap/${token1}/token2/amount`}>Next ➡️</Button>,
+        <Button action="/swap/token1/token2/amount">⬅️ Back</Button>,
       ],
     });
   } else if (amount === "amount") {
@@ -227,8 +227,8 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
       image: <S t1={token1PriceData} t2={token2PriceData} />,
       intents: [
         <TextInput placeholder={`Amount in ${token1PriceData.tokenSymbol}`} />,
-        <Button action={`/swap/${token1}/${token2}/amount`}>Next</Button>,
-        <Button action={`/swap/${token1}/token2/amount`}>Back</Button>,
+        <Button action={`/swap/${token1}/${token2}/amount`}>Next ➡️</Button>,
+        <Button action={`/swap/${token1}/token2/amount`}>⬅️ Back</Button>,
       ],
     });
   }
@@ -268,8 +268,8 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
       image: <S t1={token1PriceData} t2={token2PriceData} />,
       intents: [
         <TextInput placeholder={`Amount in ${token1PriceData.tokenSymbol}`} />,
-        <Button action={`/swap/${token1}/${token2}/amount`}>Next</Button>,
-        <Button action={`/swap/${token1}/${token2}/amount`}>Back</Button>,
+        <Button action={`/swap/${token1}/${token2}/amount`}>Next ➡️</Button>,
+        <Button action={`/swap/${token1}/${token2}/amount`}>⬅️ Back</Button>,
       ],
     });
   }
@@ -288,9 +288,9 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
     ),
     intents: [
       <Button.Transaction target={`/approve/${token1}`}>
-        Approve
+        Approve {token1PriceData.tokenSymbol}
       </Button.Transaction>,
-      <Button action={`/swap/${token1}/${token2}/amount`}>Back</Button>,
+      <Button action={`/swap/${token1}/${token2}/amount`}>⬅️ Back</Button>,
     ],
   });
 });
@@ -299,14 +299,13 @@ app.frame("/methods", async (c) => {
   const { buttonValue } = c;
   if (buttonValue == "from") {
     return c.res({
-
       image: <S t1={ethDetails} />,
       intents: [
         <TextInput placeholder="Enter Contract Address e.g: 0x.." />,
         <Button value="from" action="/token">
-          Proceed
+          Next ➡️
         </Button>,
-        <Button.Reset>Home</Button.Reset>,
+        <Button.Reset>Home 🏠</Button.Reset>,
       ],
     });
   }
@@ -316,9 +315,9 @@ app.frame("/methods", async (c) => {
     intents: [
       <TextInput placeholder="Enter Token Address e.g: 0x.." />,
       <Button action="/token" value="to">
-        Proceed
+        Next ➡️
       </Button>,
-      <Button.Reset>Home</Button.Reset>,
+      <Button.Reset>Home 🏠</Button.Reset>,
     ],
   });
 });
@@ -424,13 +423,13 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
 
     intents: [
       <Button.Transaction target={transactionTarget}>
-        {method == "from" ? "Confirm" : "Approve"}
+        {method == "from" ? "Confirm Swap" : `Approve ${token1PriceData.tokenSymbol}`}
       </Button.Transaction>,
       method == "from" ? (
-        <Button action={`/exact_token/${ca}`}>Back</Button>
+        <Button action={`/exact_token/${ca}`}>⬅️ Back</Button>
       ) : (
         <Button value="to" action="/methods">
-          Cancel
+          Cancel ❌
         </Button>
       ),
     ],
@@ -502,10 +501,10 @@ app.frame("/approved/:token1/:token2/:amount", async (c) => {
     ),
     intents: [
       <Button.Transaction target={transactionTarget}>
-        Confirm
+        Confirm Swap
       </Button.Transaction>,
       <Button value={"to"} action="/methods">
-        Cancel
+        Cancel ❌
       </Button>,
     ],
   });
