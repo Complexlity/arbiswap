@@ -169,7 +169,6 @@ app.frame("/s/:token1/:token2/:amount", async (c) => {
   let token1PriceData: TokenDetails | null = null;
   let token2PriceData: TokenDetails | null = null;
   let res: Response | null = null;
-  let error: string | undefined = undefined;
 
   let { token1, token2, amount } = c.req.param();
   console.log({ token1, token2, amount });
@@ -181,15 +180,13 @@ app.frame("/s/:token1/:token2/:amount", async (c) => {
   console.log({ token1, token2, amount });
   if (token1 === ETHEREUM_ADDRESS) {
     token1 = "token1";
-    error = "Invalid contract address";
   }
   if (token2 === token1) {
     token2 = "token2";
-    error = "Both addresses must be different";
+
   }
   if (token2 === ETHEREUM_ADDRESS) {
     token2 = "token2";
-    error = "Invalid contract address";
   }
   if (token1 === "token1") {
     console.log("Token 1 not defined");
@@ -261,7 +258,6 @@ app.frame("/s/:token1/:token2/:amount", async (c) => {
     throw new Error("Could not fetch data");
 
   if (!res || !res.ok) {
-    error = "Swap pool not found";
     return c.res({
       image: <S t1={token1PriceData} t2={token2PriceData} />,
       intents: [
