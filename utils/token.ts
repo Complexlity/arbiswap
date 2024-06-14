@@ -4,8 +4,6 @@ import { config } from "dotenv"
 
 config()
 
-
-
 export interface TokenDetails {
   tokenName:               string;
   tokenSymbol:             string;
@@ -63,7 +61,7 @@ export async function getTokenPrice(
   contractAddress = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
     chain = EvmChain.ETHEREUM
   }
-  console.log({contractAddress, chain})
+  console.log({contractAddress, chain: chain.name})
 
     const moralisApiKey = process.env.MORALIS_API_KEY;
   if (!moralisApiKey) {

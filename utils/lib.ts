@@ -1,4 +1,4 @@
-function ethereumToUrlSafeBase64(address: string) {
+export function ethereumToUrlSafeBase64(address: string) {
   // Remove the '0x' prefix
   const hexAddress = address.slice(2);
   // Convert hex to bytes
@@ -13,7 +13,7 @@ function ethereumToUrlSafeBase64(address: string) {
   return base64Address;
 }
 
-function urlSafeBase64ToEthereum(encoded: string) {
+export function urlSafeBase64ToEthereum(encoded: string) {
   // Convert from URL-safe Base64 to standard Base64
   let base64Address = encoded.replace(/-/g, "+").replace(/_/g, "/");
   // Add padding back if needed
@@ -29,9 +29,9 @@ function urlSafeBase64ToEthereum(encoded: string) {
   return ethAddress;
 }
 
-const ethAddress = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831";
-const encodedAddress = ethereumToUrlSafeBase64(ethAddress);
-console.log("Encoded:", encodedAddress); // "r4jQZe6ejsIjkyfF7bOkMiY4WDE"
+// const ethAddress = "0x912CE59144191C1204E64559FE8253a0e49E6548";
+// const encodedAddress = ethereumToUrlSafeBase64(ethAddress);
+// console.log("Encoded:", encodedAddress); // "r4jQZe6ejsIjkyfF7bOkMiY4WDE"
 
-const decodedAddress = urlSafeBase64ToEthereum(encodedAddress);
-console.log("Decoded:", decodedAddress); // "0xaf88d065e77c8cC2239327C5EDb3A432268
+// const decodedAddress = urlSafeBase64ToEthereum(encodedAddress);
+// console.log("Decoded:", decodedAddress); // "0xaf88d065e77c8cC2239327C5EDb3A432268

@@ -22,13 +22,19 @@ import {
 } from "../utils/token.js";
 import { imageUrls } from "../utils/images.js";
 import { createPublicClient, http } from "viem";
-import { arbitrum } from "viem/chains";
+import { arbitrum, base } from "viem/chains";
 import fs from "fs";
 import { ZeroxSwapPriceData, ZeroxSwapQuoteOrder } from "../utils/types.js";
 import { fdk } from "../utils/pinata.js";
 import { BlankInput } from "hono/types";
-import { CommonSolUtilsConfigSetup } from "moralis/common-sol-utils";
-
+import {
+  CommonSolUtilsConfigSetup,
+  GetTokenMetadataOperation,
+} from "moralis/common-sol-utils";
+import {
+  ethereumToUrlSafeBase64,
+  urlSafeBase64ToEthereum,
+} from "../utils/lib.js";
 // Uncomment to use Edge Runtime.
 // export const config = {
 //   runtime: 'edge',
@@ -40,12 +46,11 @@ const arbitrumClient = createPublicClient({
 
 const DEFAULT_TOKEN_CA = "0x912ce59144191c1204e64559fe8253a0e49e6548";
 const ETHEREUM_ADDRESS = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
-  const ethDetails = {
-    tokenLogo: "https://i.ibb.co/Mg8Yd81/eth.png",
-    tokenSymbol: "ETH",
-  };
-
-
+const USDC_ADDRESS = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831"
+const ethDetails = {
+  tokenLogo: "https://i.ibb.co/Mg8Yd81/eth.png",
+  tokenSymbol: "ETH",
+};
 
 type State = {
   order: any;
@@ -111,7 +116,6 @@ async function invalidOrMissingCaError(
   method: string,
   error: string
 ) {
-
   console.log({ method });
   console.log({ error });
   const heading = getHeading(method);
@@ -165,29 +169,37 @@ app.frame("/", analytics, async (c: StartFrameContext) => {
 });
 
 app.frame("/s/:token1/:token2/:amount", async (c) => {
-  const { inputText, url } = c;
+  const { inputText, buttonValue } = c;
   let token1PriceData: TokenDetails | null = null;
   let token2PriceData: TokenDetails | null = null;
   let res: Response | null = null;
 
   let { token1, token2, amount } = c.req.param();
+  console.log("Before encoding");
   console.log({ token1, token2, amount });
 
-  if (token1 === "token1") token1 = inputText ?? "token1";
-  else if (token2 === "token2") token2 = inputText ?? "token2";
+  if (token1 !== "token1") token1 = urlSafeBase64ToEthereum(token1);
+  if (token2 !== "token2") token2 = urlSafeBase64ToEthereum(token2);
+  console.log("After encoding");
+  console.log({ token1, token2 });
+
+  if (token1 === "token1" && buttonValue !== "back") token1 = inputText ?? "token1";
+  else if (token2 === "token2" && buttonValue !== "back") token2 = inputText ?? "token2";
   else amount = inputText ?? "amount";
 
-  console.log({ token1, token2, amount });
   if (token1 === ETHEREUM_ADDRESS) {
     token1 = "token1";
   }
   if (token2 === token1) {
     token2 = "token2";
-
   }
   if (token2 === ETHEREUM_ADDRESS) {
     token2 = "token2";
   }
+
+  console.log("After input checking");
+  console.log({ token1, token2 });
+
   if (token1 === "token1") {
     console.log("Token 1 not defined");
     return c.res({
@@ -202,12 +214,15 @@ app.frame("/s/:token1/:token2/:amount", async (c) => {
     token1PriceData = await getTokenPrice(token1);
     if (!token1PriceData) throw new Error("Token 1 price data missing");
     console.log("Token 2 not defined");
+    token1 = ethereumToUrlSafeBase64(token1);
+    console.log("Before exit");
+    console.log({ token1 });
     return c.res({
       image: <S t1={token1PriceData} />,
       intents: [
         <TextInput placeholder="Token 2 CA" />,
         <Button action={`/s/${token1}/token2/amount`}>Next ➡️</Button>,
-        <Button action="/s/token1/token2/amount">⬅️ Back</Button>,
+        <Button value="back" action="/s/token1/token2/amount">⬅️ Back</Button>,
       ],
     });
   } else if (amount === "amount") {
@@ -218,12 +233,14 @@ app.frame("/s/:token1/:token2/:amount", async (c) => {
     if (!token1PriceData || !token2PriceData)
       throw new Error("Token 1 or Token 2 Missing");
     console.log("Amount not defined");
+    token1 = ethereumToUrlSafeBase64(token1);
+    token2 = ethereumToUrlSafeBase64(token2);
     return c.res({
       image: <S t1={token1PriceData} t2={token2PriceData} />,
       intents: [
         <TextInput placeholder={`Amount in ${token1PriceData.tokenSymbol}`} />,
         <Button action={`/s/${token1}/${token2}/amount`}>Next ➡️</Button>,
-        <Button action={`/s/${token1}/token2/amount`}>⬅️ Back</Button>,
+        <Button value="back" action={`/s/${token1}/token2/amount`}>⬅️ Back</Button>,
       ],
     });
   }
@@ -235,8 +252,6 @@ app.frame("/s/:token1/:token2/:amount", async (c) => {
     amount = "1";
     amountAsNumber = Number(amount);
   }
-
-  const action = `/approved/${token1}/${token2}/${amountAsNumber}`;
 
   const baseUrl = `https://arbitrum.api.0x.org/swap/v1/price?`;
   const params = new URLSearchParams({
@@ -256,20 +271,21 @@ app.frame("/s/:token1/:token2/:amount", async (c) => {
   ]);
   if (!token1PriceData || !token2PriceData)
     throw new Error("Could not fetch data");
-
+  token1 = ethereumToUrlSafeBase64(token1);
+  token2 = ethereumToUrlSafeBase64(token2);
   if (!res || !res.ok) {
     return c.res({
       image: <S t1={token1PriceData} t2={token2PriceData} />,
       intents: [
         <TextInput placeholder={`Amount in ${token1PriceData.tokenSymbol}`} />,
         <Button action={`/s/${token1}/${token2}/amount`}>Next ➡️</Button>,
-        <Button action={`/s/${token1}/${token2}/amount`}>⬅️ Back</Button>,
+        <Button value="back" action={`/s/${token1}/${token2}/amount`}>⬅️ Back</Button>,
       ],
     });
   }
   const priceData = (await res.json()) as ZeroxSwapPriceData;
   const tokenAmountReceived = Number(priceData.price) * amountAsNumber;
-
+  const action = `/a/${token1}/${token2}/${amountAsNumber}`;
   return c.res({
     action,
     image: (
@@ -281,10 +297,100 @@ app.frame("/s/:token1/:token2/:amount", async (c) => {
       />
     ),
     intents: [
-      <Button.Transaction target={`/approve/${token1}`}>
+      <Button.Transaction target={`/approve/${urlSafeBase64ToEthereum(token1)}`}>
         Approve {token1PriceData.tokenSymbol}
       </Button.Transaction>,
       <Button action={`/s/${token1}/${token2}/amount`}>⬅️ Back</Button>,
+    ],
+  });
+});
+
+app.frame("/a/:token1/:token2/:amount", async (c) => {
+  console.log("I am in approved");
+  let token1 = c.req.param("token1");
+  let token2 = c.req.param("token2") ?? ETHEREUM_ADDRESS;
+  let amount = c.req.param("amount");
+
+  console.log({ token1, token2, amount });
+  if (!token1 || !token2 || !amount) throw new Error("Token 1 not defined");
+  if (token2 !== ETHEREUM_ADDRESS) {
+    token1 = urlSafeBase64ToEthereum(token1);
+    token2 = urlSafeBase64ToEthereum(token2);
+  }
+  let amountAsNumber = Number(amount);
+  if (isNaN(amountAsNumber) || amountAsNumber == 0) {
+    amount = "1";
+    amountAsNumber = Number(amount);
+  }
+
+  let token1PriceData: TokenDetails | null = null;
+  let token2PriceData: TokenDetails | null = null;
+  let res: Response | null = null;
+
+  const baseUrl = `https://arbitrum.api.0x.org/swap/v1/price?`;
+  const params = new URLSearchParams({
+    sellToken: token1,
+    buyToken: token2,
+    sellAmount: parseEther(amount).toString(),
+  }).toString();
+
+  const fetcher = fetch(baseUrl + params, {
+    headers: { "0x-api-key": process.env.ZEROX_API_KEY || "" },
+  });
+  let hasEth = false;
+  if (token2 === ETHEREUM_ADDRESS) {
+    [token1PriceData, token2PriceData, res] = await Promise.all([
+      getTokenPrice(token1),
+      getTokenPrice(),
+      fetcher,
+    ]);
+    if (!token1PriceData || !token2PriceData)
+      throw new Error("Could not get token1 or token2 from moralis");
+    token2PriceData.tokenSymbol = "ETH";
+    hasEth = true;
+  } else {
+    [token1PriceData, token2PriceData, res] = await Promise.all([
+      getTokenPrice(token1),
+      getTokenPrice(token2),
+      fetcher,
+    ]);
+    if (!token1PriceData || !token2PriceData)
+      throw new Error("Could not get token1 or token2 from moralis");
+  }
+
+  const priceData = (await res.json()) as ZeroxSwapPriceData;
+  const tokenAmountReceived = Number(priceData.price) * Number(amount);
+
+  const transactionTarget = `/sell/${token1}/${token2}/${amount}`;
+  console.log({ transactionTarget });
+
+  return c.res({
+    action: "/finish",
+    image: (
+      <S
+        t1={token1PriceData}
+        t2={token2PriceData}
+        sA={amountAsNumber}
+        rA={tokenAmountReceived}
+      />
+    ),
+    intents: [
+      <Button.Transaction target={transactionTarget}>
+        Confirm Swap
+      </Button.Transaction>,
+      hasEth ? (
+        <Button value={"to"} action="/methods">
+          Cancel ❌
+        </Button>
+      ) : (
+        <Button
+          action={`/s/${ethereumToUrlSafeBase64(
+            token1
+          )}/${ethereumToUrlSafeBase64(token2)}/amount`}
+        >
+          Cancel ❌
+        </Button>
+      ),
     ],
   });
 });
@@ -397,9 +503,7 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
   const tokenAmountReceived = Number(priceData.price) * tokenAmountAsNumber;
 
   const action =
-    method === "from"
-      ? "/finish"
-      : `/approved/${token1}/${token2}/${tokenAmount}`;
+    method === "from" ? "/finish" : `/a/${token1}/${token2}/${tokenAmount}`;
   console.log({ action });
   const transactionTarget =
     method === "from" ? `/tx/${method}/${ca}/${tokenAmount}` : `/approve/${ca}`;
@@ -417,7 +521,9 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
 
     intents: [
       <Button.Transaction target={transactionTarget}>
-        {method == "from" ? "Confirm Swap" : `Approve ${token1PriceData.tokenSymbol}`}
+        {method == "from"
+          ? "Confirm Swap"
+          : `Approve ${token1PriceData.tokenSymbol}`}
       </Button.Transaction>,
       method == "from" ? (
         <Button action={`/exact_token/${ca}`}>⬅️ Back</Button>
@@ -425,86 +531,6 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
         <Button value="to" action="/methods">
           Cancel ❌
         </Button>
-      ),
-    ],
-  });
-});
-
-app.frame("/approved/:token1/:token2/:amount", async (c) => {
-  console.log("I am in approved");
-  const token1 = c.req.param("token1");
-  const token2 = c.req.param("token2") ?? ETHEREUM_ADDRESS;
-  let amount = c.req.param("amount");
-
-  console.log({ token1, token2, amount });
-  if (!token1 || !amount) throw new Error("Token 1 not defined");
-  let amountAsNumber = Number(amount);
-  if (isNaN(amountAsNumber) || amountAsNumber == 0) {
-    amount = "1";
-    amountAsNumber = Number(amount);
-  }
-
-  const transactionTarget = `/sell/${token1}/${token2}/${amount}`;
-  console.log({ transactionTarget });
-  let token1PriceData: TokenDetails | null = null;
-  let token2PriceData: TokenDetails | null = null;
-  let res: Response | null = null;
-
-  const baseUrl = `https://arbitrum.api.0x.org/swap/v1/price?`;
-  const params = new URLSearchParams({
-    sellToken: token1,
-    buyToken: token2,
-    sellAmount: parseEther(amount).toString(),
-  }).toString();
-
-  const fetcher = fetch(baseUrl + params, {
-    headers: { "0x-api-key": process.env.ZEROX_API_KEY || "" },
-  });
-let hasEth = false
-  if (token2 === ETHEREUM_ADDRESS) {
-    [token1PriceData, token2PriceData, res] = await Promise.all([
-      getTokenPrice(token1),
-      getTokenPrice(),
-      fetcher,
-    ]);
-    if (!token1PriceData || !token2PriceData)
-      throw new Error("Could not get token1 or token2 from moralis");
-    token2PriceData.tokenSymbol = "ETH";
-  } else {
-    [token1PriceData, token2PriceData, res] = await Promise.all([
-      getTokenPrice(token1),
-      getTokenPrice(token2),
-      fetcher,
-    ]);
-    if (!token1PriceData || !token2PriceData)
-      throw new Error("Could not get token1 or token2 from moralis");
-    hasEth = true;
-  }
-
-  const priceData = (await res.json()) as ZeroxSwapPriceData;
-  const tokenAmountReceived = Number(priceData.price) * Number(amount);
-
-
-  return c.res({
-    action: "/finish",
-    image: (
-      <S
-        t1={token1PriceData}
-        t2={token2PriceData}
-        sA={amountAsNumber}
-        rA={tokenAmountReceived}
-      />
-    ),
-    intents: [
-      <Button.Transaction target={transactionTarget}>
-        Confirm Swap
-      </Button.Transaction>,
-      hasEth ? (
-        <Button value={"to"} action="/methods">
-          Cancel ❌
-        </Button>
-      ) : (
-        <Button action={`/s/${token1}/${token2}/amount`}>Cancel ❌</Button>
       ),
     ],
   });
@@ -542,14 +568,15 @@ app.transaction("/sell/:token1/:token2/:amount", async (c) => {
   console.log("I am in sell");
   const token1 = c.req.param("token1");
   const token2 = c.req.param("token2");
-  const amount = c.req.param("amount");
+  let amount = c.req.param("amount");
   console.log({ token1, token2, amount });
   if (!token1 || !token2 || !amount) throw new Error("Values missing");
-
+  if(isNaN(Number(amount)) || Number(amount) == 0) amount = "0.1"
   const params = new URLSearchParams({
     sellToken: token1,
     buyToken: token2,
-    sellAmount: parseEther(amount).toString(),
+    sellAmount: token1 === USDC_ADDRESS ? `${Number(amount) * 1000000}`
+: parseEther(amount).toString(),
     feeRecipient: "0x8ff47879d9eE072b593604b8b3009577Ff7d6809",
     buyTokenPercentageFee: "0.01",
   }).toString();
@@ -746,7 +773,6 @@ function S({
       <div tw="flex justify-between py-3">
         <div tw="text-gray-400">You spend</div>
         <div tw="flex text-4xl items-center" style={{ gap: "4px" }}>
-
           <span>You receive</span>
         </div>
       </div>
