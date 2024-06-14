@@ -40,6 +40,12 @@ const arbitrumClient = createPublicClient({
 
 const DEFAULT_TOKEN_CA = "0x912ce59144191c1204e64559fe8253a0e49e6548";
 const ETHEREUM_ADDRESS = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+  const ethDetails = {
+    tokenLogo: "https://i.ibb.co/Mg8Yd81/eth.png",
+    tokenSymbol: "ETH",
+  };
+
+
 
 type State = {
   order: any;
@@ -105,10 +111,6 @@ async function invalidOrMissingCaError(
   method: string,
   error: string
 ) {
-  const ethDetails = {
-    tokenLogo: "https://i.ibb.co/Mg8Yd81/eth.png",
-    tokenSymbol: "ETH",
-  };
 
   console.log({ method });
   console.log({ error });
@@ -133,8 +135,7 @@ async function invalidOrMissingCaError(
   } else {
     return c.res({
       image: (
-        //@ts-expect-error
-        <S t2={ethDetails} heading={heading} message={error} error={true} />
+        <S t2={ethDetails} />
       ),
       intents: [
         <TextInput placeholder="Enter Contract Address e.g: 0x.." />,
@@ -297,14 +298,15 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
 app.frame("/methods", async (c) => {
   const { buttonValue } = c;
   //No arguments = eth price
-  let token = await getTokenPrice();
-  console.log(token?.tokenLogo);
-  if (!token) throw new Error("Token not found");
-  token.tokenSymbol = "ETH";
+  // let token = await getTokenPrice();
+  // console.log(token?.tokenLogo);
+  // if (!token) throw new Error("Token not found");
+  // token.tokenSymbol = "ETH";
 
   if (buttonValue == "from") {
     return c.res({
-      image: <S t1={token} />,
+
+      image: <S t1={ethDetails} />,
       intents: [
         <TextInput placeholder="Enter Contract Address e.g: 0x.." />,
         <Button value="from" action="/token">
@@ -316,7 +318,7 @@ app.frame("/methods", async (c) => {
   }
 
   return c.res({
-    image: <S t2={token} />,
+    image: <S t2={ethDetails} />,
     intents: [
       <TextInput placeholder="Enter Token Address e.g: 0x.." />,
       <Button action="/token" value="to">
@@ -662,8 +664,8 @@ function S({
   sA: sA,
   rA: rA,
 }: {
-  t1?: TokenDetails;
-  t2?: TokenDetails;
+  t1?: { tokenLogo: string; tokenSymbol: string } & Partial<TokenDetails>;
+  t2?: { tokenLogo: string; tokenSymbol: string } & Partial<TokenDetails>;
   sA?: number;
   rA?: number;
 }) {
