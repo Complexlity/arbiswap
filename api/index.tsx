@@ -655,7 +655,7 @@ function formatNumber(num: number) {
   if (Number.isInteger(num)) {
     return num;
   } else {
-    return num.toFixed(3);
+    return num.toFixed(2);
   }
 }
 
