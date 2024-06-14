@@ -297,12 +297,6 @@ app.frame("/swap/:token1/:token2/:amount", async (c) => {
 
 app.frame("/methods", async (c) => {
   const { buttonValue } = c;
-  //No arguments = eth price
-  // let token = await getTokenPrice();
-  // console.log(token?.tokenLogo);
-  // if (!token) throw new Error("Token not found");
-  // token.tokenSymbol = "ETH";
-
   if (buttonValue == "from") {
     return c.res({
 
@@ -658,6 +652,14 @@ function SwapImage({ text }: { text: string }) {
   );
 }
 
+function formatNumber(num: number) {
+  if (Number.isInteger(num)) {
+    return num;
+  } else {
+    return num.toFixed(3);
+  }
+}
+
 function S({
   t1: t1,
   t2: t2,
@@ -671,10 +673,10 @@ function S({
 }) {
   const t1Logo = t1 ? t1.tokenLogo : dummyImage;
   const t2Logo = t2 ? t2.tokenLogo : dummyImage;
-  const t1Symbol = t1 ? t1.tokenSymbol : "??";
-  const t2Symbol = t2 ? t2.tokenSymbol : "??";
-  const saValue = sA ? sA.toFixed(2) : "??";
-  const raValue = rA ? rA.toFixed(2) : "??";
+  const t1Symbol = t1 ? t1.tokenSymbol : "???";
+  const t2Symbol = t2 ? t2.tokenSymbol : "???";
+  const saValue = sA ? formatNumber(sA) : "??";
+  const raValue = rA ? formatNumber(rA) : "??";
 
   return (
     <div
@@ -735,7 +737,7 @@ function S({
           </div>
         </div>
 
-        <div tw="flex w-full justify-between pl-12 pr-10">
+        <div tw="flex w-full justify-between pl-9 pr-10">
           <span tw="ml-2">{t1Symbol}</span>
           <span>{t2Symbol}</span>
         </div>
@@ -745,12 +747,12 @@ function S({
       <div tw="flex justify-between py-3">
         <div tw="text-gray-400">You spend</div>
         <div tw="flex text-4xl items-center" style={{ gap: "4px" }}>
-          {/* <img src={token.tokenLogo} width={50} height={50} /> */}
+
           <span>You receive</span>
         </div>
       </div>
       <div tw="flex justify-between py-3">
-        <span tw="text-gray-400 flex gap-2">{`${saValue} ${t1Symbol}`}</span>
+        <span tw="text-gray-400 flex">{`${saValue} ${t1Symbol}`}</span>
         <span tw="text-4xl flex" style={{ gap: "10px" }}>
           <span>{raValue} </span>
           <span>{t2Symbol}</span>
@@ -864,7 +866,7 @@ function PreviewImage({
         </div>
       </div>
       <div tw="flex justify-between py-2">
-        <span tw="text-gray-400 flex gap-2">{`${amountInEth} ETH ($${ethInUsd.toFixed(
+        <span tw="text-gray-400 flex">{`${amountInEth} ETH ($${ethInUsd.toFixed(
           2
         )})`}</span>
         <span tw="text-4xl flex" style={{ gap: "5px" }}>
