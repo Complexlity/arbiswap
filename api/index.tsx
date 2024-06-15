@@ -293,13 +293,13 @@ const newState = deriveState(previousState => {
     tokenSymbol: token2.sym
   }
 
-  const action = `/a/${ethereumToUrlSafeBase64(
-    token1.ca
-  )}/${ethereumToUrlSafeBase64(token2.ca)}/${amount}`;
+  // const action = `/a/${ethereumToUrlSafeBase64(
+  //   token1.ca
+  // )}/${ethereumToUrlSafeBase64(token2.ca)}/${amount}`;
   const txTarget = `/approve/${token1.ca}`
 
   return c.res({
-    action,
+    action: "/swap/approve",
     image: (
       <S
         t1={token1PriceData}
@@ -314,6 +314,45 @@ const newState = deriveState(previousState => {
     ]
   });
 })
+
+
+app.frame("/swap/approve", async (c) => {
+  console.log("I am in approved");
+  
+  const { previousState } = c
+  const { token1, token2, sendAmount, receiveAmount } = previousState
+  if (!token1 || !token2 || !sendAmount ) throw new Error("Token 1 or Token 2 or Send Amount missing")
+
+  const transactionTarget = `/sell/${token1.ca}/${token2.ca}/${sendAmount}`;
+  console.log({ transactionTarget });
+  let token1PriceData = {
+    tokenLogo: token1.logo,
+    tokenSymbol: token1.sym,
+  };
+  let token2PriceData = {
+    tokenLogo: token2.logo,
+    tokenSymbol: token2.sym,
+  };
+
+  return c.res({
+    action: "/finish",
+    image: (
+      <S
+        t1={token1PriceData}
+        t2={token2PriceData}
+        sA={sendAmount}
+        rA={receiveAmount!}
+      />
+    ),
+    intents: [
+      <Button.Transaction target={transactionTarget}>
+        Confirm Swap
+      </Button.Transaction>,
+     <Button.Reset>Cancel</Button.Reset>
+
+    ],
+  });
+});
 
 
 
