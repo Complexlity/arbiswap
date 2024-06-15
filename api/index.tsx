@@ -53,12 +53,35 @@ const ethDetails = {
 };
 
 type State = {
-  order: any;
+  token1: {
+    ca: string,
+    logo: string,
+    sym: string
+  },
+  token2: {
+    ca: string,
+    logo: string,
+    sym: string
+  },
+  amount: number
 };
 
 export const app = new Frog<{ State: State }>({
   assetsPath: "/",
   basePath: "/api",
+  initialState: {
+    token1: {
+      ca: "",
+      logo: "",
+      sym: "",
+    },
+    token2: {
+      ca: "",
+      logo: "",
+      sym: "",
+    },
+    amount: 0,
+  },
 });
 
 const analytics = fdk.analyticsMiddleware({
@@ -206,7 +229,7 @@ app.frame("/s/:token1/:token2/:amount", async (c) => {
       image: <S />,
       intents: [
         <TextInput placeholder="Token 1 CA" />,
-        <Button action="/s/token1/token2/ amount">Next ➡️</Button>,
+        <Button action="/s/token1/token2/amount">Next ➡️</Button>,
         <Button.Reset>⬅️ Back</Button.Reset>,
       ],
     });
