@@ -194,19 +194,28 @@ return c.res({
 });
 })
 app.frame('/swap/token1', async (c) => {
-  const { inputText, deriveState, previousState } = c
-  const token1 = inputText
+  const { inputText, deriveState, buttonValue, previousState  } = c
+  let state = previousState
+  if (buttonValue !== "back") {
+
+    const token1 = inputText
   if (!token1) throw new Error("Missing token 1")
   const token1PriceData = await getTokenPrice(token1)
-  if (!token1PriceData) throw new Error("Token 1 Price data not secured")
-  const state = deriveState(previousState => {
-    previousState.token1 = {
-      ca: token1PriceData.tokenAddress,
-      logo: token1PriceData.tokenLogo,
-      sym: token1PriceData.tokenSymbol
-    }
-  });
+    if (!token1PriceData) throw new Error("Token 1 Price data not secured")
+    state = deriveState(previousState => {
+  previousState.token1 = {
+    ca: token1PriceData.tokenAddress,
+  logo: token1PriceData.tokenLogo,
+sym: token1PriceData.tokenSymbol
+}
+});
+  }
 
+  else {
+    state = deriveState(previousState => {
+      previousState.token2 = null
+    })
+ }
 
 
 
@@ -215,88 +224,111 @@ return c.res({
   intents: [
     <TextInput placeholder="Token 2 CA" />,
     <Button action="/swap/token2">Next ➡️</Button>,
-    <Button.Reset>⬅️ Back</Button.Reset>,
+    <Button action="/swap/start">⬅️ Back</Button>,
   ],
 });
 })
 
 
 app.frame("/swap/token2", async (c) => {
-  const { inputText, previousState, deriveState } = c;
-  console.log({ inputText })
+  const { inputText, previousState, deriveState, buttonValue } = c;
+ let state = previousState
+  if (buttonValue !== "back") {
+    let token1 = previousState.token1;
+    if (!token1) throw new Error("Token 1 missing");
+    let token2 = inputText;
+    if (!token2) throw new Error("There not input text");
+    const token2PriceData = await getTokenPrice(token2);
+    if (!token2PriceData) throw new Error("Token to not found");
+     state = deriveState((previousState) => {
+      previousState.token2 = {
+        ca: token2,
+        logo: token2PriceData.tokenLogo,
+        sym: token2PriceData.tokenSymbol,
+      };
+    });
+  }
+  else {
+    state = deriveState(previousState => {
+      previousState.sendAmount = null
+    })
+  }
 
-  // let oldState =  deriveState(previousState);
-  console.log({previousState})
+  const { token1, token2 } = state
+  if(!token1 || !token2) throw new Error("Token 1 or Token 2 missing")
 
-  let token1 = previousState.token1;
-  if (!token1) throw new Error("Token 1 missing");
-  let token2 = inputText;
-  if (!token2) throw new Error("There not input text");
-  const token2PriceData = await getTokenPrice(token2);
-  if (!token2PriceData) throw new Error("Token to not found");
-  const newState = deriveState((previousState) => {
-    previousState.token2 = {
-      ca: token2,
-      logo: token2PriceData.tokenLogo,
-      sym: token2PriceData.tokenSymbol,
-    };
-  });
+  let token1Details = {
+    tokenLogo: token1.logo,
+    tokenSymbol: token1.sym,
+  };
+  let token2Details = {
+    tokenLogo: token2.logo,
+    tokenSymbol: token2.sym,
+  };
 
   return c.res({
     image: (
       <S
-        t1={{ tokenLogo: token1.logo, tokenSymbol: token1.sym }}
-        t2={token2PriceData}
+        t1={token1Details}
+        t2={token2Details}
       />
     ),
     intents: [
       <TextInput placeholder={`Amount in ${token1.sym}`} />,
       <Button action="/swap/amount">Next ➡️</Button>,
-      <Button>⬅️ Back</Button>,
+      <Button action="/swap/token1" value="back">
+        ⬅️ Back
+      </Button>,
     ],
   });
 });
 
 app.frame("/swap/amount", async (c) => {
-  const { inputText, deriveState, previousState } = c
-  let amount = Number(inputText)
-  if (!amount) amount = 0.01
+  const { inputText, deriveState, previousState, buttonValue } = c;
+  let amount = Number(inputText);
+  if (!amount) amount = 0.01;
+  let state = previousState
   const { token1, token2 } = previousState;
-  if (!token1 || !token2) throw new Error("Token 1 or Token 2 missing")
+  if (!token1 || !token2) throw new Error("Token 1 or Token 2 missing");
+  let tokenAmountReceived = 0;
 
+  if (buttonValue !== "back") {
+    const params = new URLSearchParams({
+      sellToken: token1.ca,
+      buyToken: token2.ca,
+      sellAmount: parseEther(`${amount}`).toString(),
+    }).toString();
+    const baseUrl = `https://arbitrum.api.0x.org/swap/v1/price?`;
+    // fs.writeFileSync("price.json", JSON.stringify(priceData, null, 2));
+    const fetcher = fetch(baseUrl + params, {
+      headers: { "0x-api-key": process.env.ZEROX_API_KEY || "" },
+    });
+    const res = await fetcher;
+    const priceData = (await res.json()) as ZeroxSwapPriceData;
+     tokenAmountReceived = Number(priceData.price) * amount;
 
-  const params = new URLSearchParams({
-    sellToken: token1.ca,
-    buyToken: token2.ca,
-    sellAmount: parseEther(`${amount}`).toString(),
-  }).toString();
-const baseUrl = `https://arbitrum.api.0x.org/swap/v1/price?`;
-  // fs.writeFileSync("price.json", JSON.stringify(priceData, null, 2));
-  const fetcher = fetch(baseUrl + params, {
-    headers: { "0x-api-key": process.env.ZEROX_API_KEY || "" },
-  });
-  const res = await fetcher
-  const priceData = (await res.json()) as ZeroxSwapPriceData;
-  const tokenAmountReceived = Number(priceData.price) * amount;
+    state = deriveState((previousState) => {
+      (previousState.sendAmount = amount),
+        (previousState.receiveAmount = tokenAmountReceived);
+    });
+  }
 
-const newState = deriveState(previousState => {
-  previousState.sendAmount = amount,
-    previousState.receiveAmount = tokenAmountReceived
-})
+  else {
+    amount = previousState.sendAmount ?? 0.01
+    tokenAmountReceived = previousState.receiveAmount ?? 0
+ }
+
 
   let token1PriceData = {
     tokenLogo: token1.logo,
-    tokenSymbol: token1.sym
-  }
+    tokenSymbol: token1.sym,
+  };
   let token2PriceData = {
     tokenLogo: token2.logo,
-    tokenSymbol: token2.sym
-  }
+    tokenSymbol: token2.sym,
+  };
 
-  // const action = `/a/${ethereumToUrlSafeBase64(
-  //   token1.ca
-  // )}/${ethereumToUrlSafeBase64(token2.ca)}/${amount}`;
-  const txTarget = `/approve/${token1.ca}`
+  const txTarget = `/approve/${token1.ca}`;
 
   return c.res({
     action: "/swap/approve",
@@ -309,16 +341,20 @@ const newState = deriveState(previousState => {
       />
     ),
     intents: [
-      <Button.Transaction target={txTarget}>Approve {token1.sym}</Button.Transaction>,
-      <Button.Reset>Back</Button.Reset>
-    ]
+      <Button.Transaction target={txTarget}>
+        Approve {token1.sym}
+      </Button.Transaction>,
+      <Button value="back" action="/swap/token2">
+       ⬅️ Back
+      </Button>,
+    ],
   });
 })
 
 
 app.frame("/swap/approve", async (c) => {
   console.log("I am in approved");
-  
+
   const { previousState } = c
   const { token1, token2, sendAmount, receiveAmount } = previousState
   if (!token1 || !token2 || !sendAmount ) throw new Error("Token 1 or Token 2 or Send Amount missing")
@@ -348,8 +384,9 @@ app.frame("/swap/approve", async (c) => {
       <Button.Transaction target={transactionTarget}>
         Confirm Swap
       </Button.Transaction>,
-     <Button.Reset>Cancel</Button.Reset>
-
+      <Button value="back" action="/swap/amount">
+       ⬅️ Back
+      </Button>,
     ],
   });
 });
