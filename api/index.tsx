@@ -12,29 +12,19 @@ import { serveStatic } from "frog/serve-static";
 
 // import { neynar } from 'frog/hubs'
 import { handle } from "frog/vercel";
-import { Address, parseAbi, parseEther, parseUnits } from "viem";
-import {
-  TokenDetails,
-  convertTokenAmountToUSD,
-  formatCurrency,
-  getEthPrice,
-  getTokenPrice,
-} from "../utils/token.js";
-import { imageUrls } from "../utils/images.js";
-import { createPublicClient, http } from "viem";
-import { arbitrum, base } from "viem/chains";
-import fs from "fs";
-import { ZeroxSwapPriceData, ZeroxSwapQuoteOrder } from "../utils/types.js";
-import { fdk } from "../utils/pinata.js";
 import { BlankInput } from "hono/types";
-import {
-  CommonSolUtilsConfigSetup,
-  GetTokenMetadataOperation,
-} from "moralis/common-sol-utils";
+import { createPublicClient, http, parseEther } from "viem";
+import { arbitrum } from "viem/chains";
 import {
   ethereumToUrlSafeBase64,
   urlSafeBase64ToEthereum,
 } from "../utils/lib.js";
+import { fdk } from "../utils/pinata.js";
+import {
+  TokenDetails,
+  getTokenPrice
+} from "../utils/token.js";
+import { ZeroxSwapPriceData, ZeroxSwapQuoteOrder } from "../utils/types.js";
 // Uncomment to use Edge Runtime.
 // export const config = {
 //   runtime: 'edge',
@@ -57,13 +47,14 @@ type State = {
     ca: string,
     logo: string,
     sym: string
-  },
+  } | null,
   token2: {
     ca: string,
     logo: string,
     sym: string
-  },
-  amount: number
+  } | null,
+  sendAmount: number | null,
+  receiveAmount: number | null
 };
 
 export const app = new Frog<{ State: State }>({
@@ -80,7 +71,8 @@ export const app = new Frog<{ State: State }>({
       logo: "",
       sym: "",
     },
-    amount: 0,
+    sendAmount: 0,
+    receiveAmount: 0,
   },
 });
 
@@ -186,10 +178,144 @@ app.frame("/", analytics, async (c: StartFrameContext) => {
     intents: [
       <Button value={"from"}>ETH-TOKEN</Button>,
       <Button value={"to"}>TOKEN-ETH</Button>,
-      <Button action="/s/token1/token2/amount">TOKEN-TOKEN</Button>,
+      <Button action="/swap/start">TOKEN-TOKEN</Button>,
     ],
   });
 });
+
+app.frame('/swap/start', async (c) => {
+return c.res({
+  image: <S />,
+  intents: [
+    <TextInput placeholder="Token 1 CA" />,
+    <Button action="/swap/token1">Next ➡️</Button>,
+    <Button.Reset>⬅️ Back</Button.Reset>,
+  ],
+});
+})
+app.frame('/swap/token1', async (c) => {
+  const { inputText, deriveState, previousState } = c
+  const token1 = inputText
+  if (!token1) throw new Error("Missing token 1")
+  const token1PriceData = await getTokenPrice(token1)
+  if (!token1PriceData) throw new Error("Token 1 Price data not secured")
+  const state = deriveState(previousState => {
+    previousState.token1 = {
+      ca: token1PriceData.tokenAddress,
+      logo: token1PriceData.tokenLogo,
+      sym: token1PriceData.tokenSymbol
+    }
+  });
+
+
+
+
+return c.res({
+  image: <S t1={{tokenLogo: state.token1!.logo, tokenSymbol: state.token1!.sym}} />,
+  intents: [
+    <TextInput placeholder="Token 2 CA" />,
+    <Button action="/swap/token2">Next ➡️</Button>,
+    <Button.Reset>⬅️ Back</Button.Reset>,
+  ],
+});
+})
+
+
+app.frame("/swap/token2", async (c) => {
+  const { inputText, previousState, deriveState } = c;
+  console.log({ inputText })
+
+  // let oldState =  deriveState(previousState);
+  console.log({previousState})
+
+  let token1 = previousState.token1;
+  if (!token1) throw new Error("Token 1 missing");
+  let token2 = inputText;
+  if (!token2) throw new Error("There not input text");
+  const token2PriceData = await getTokenPrice(token2);
+  if (!token2PriceData) throw new Error("Token to not found");
+  const newState = deriveState((previousState) => {
+    previousState.token2 = {
+      ca: token2,
+      logo: token2PriceData.tokenLogo,
+      sym: token2PriceData.tokenSymbol,
+    };
+  });
+
+  return c.res({
+    image: (
+      <S
+        t1={{ tokenLogo: token1.logo, tokenSymbol: token1.sym }}
+        t2={token2PriceData}
+      />
+    ),
+    intents: [
+      <TextInput placeholder={`Amount in ${token1.sym}`} />,
+      <Button action="/swap/amount">Next ➡️</Button>,
+      <Button>⬅️ Back</Button>,
+    ],
+  });
+});
+
+app.frame("/swap/amount", async (c) => {
+  const { inputText, deriveState, previousState } = c
+  let amount = Number(inputText)
+  if (!amount) amount = 0.01
+  const { token1, token2 } = previousState;
+  if (!token1 || !token2) throw new Error("Token 1 or Token 2 missing")
+
+
+  const params = new URLSearchParams({
+    sellToken: token1.ca,
+    buyToken: token2.ca,
+    sellAmount: parseEther(`${amount}`).toString(),
+  }).toString();
+const baseUrl = `https://arbitrum.api.0x.org/swap/v1/price?`;
+  // fs.writeFileSync("price.json", JSON.stringify(priceData, null, 2));
+  const fetcher = fetch(baseUrl + params, {
+    headers: { "0x-api-key": process.env.ZEROX_API_KEY || "" },
+  });
+  const res = await fetcher
+  const priceData = (await res.json()) as ZeroxSwapPriceData;
+  const tokenAmountReceived = Number(priceData.price) * amount;
+
+const newState = deriveState(previousState => {
+  previousState.sendAmount = amount,
+    previousState.receiveAmount = tokenAmountReceived
+})
+
+  let token1PriceData = {
+    tokenLogo: token1.logo,
+    tokenSymbol: token1.sym
+  }
+  let token2PriceData = {
+    tokenLogo: token2.logo,
+    tokenSymbol: token2.sym
+  }
+
+  const action = `/a/${ethereumToUrlSafeBase64(
+    token1.ca
+  )}/${ethereumToUrlSafeBase64(token2.ca)}/${amount}`;
+  const txTarget = `/approve/${token1.ca}`
+
+  return c.res({
+    action,
+    image: (
+      <S
+        t1={token1PriceData}
+        t2={token2PriceData}
+        sA={amount}
+        rA={tokenAmountReceived}
+      />
+    ),
+    intents: [
+      <Button.Transaction target={txTarget}>Approve {token1.sym}</Button.Transaction>,
+      <Button.Reset>Back</Button.Reset>
+    ]
+  });
+})
+
+
 
 app.frame("/s/:token1/:token2/:amount", async (c) => {
   const { inputText, buttonValue } = c;
@@ -500,6 +626,7 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
   const fetcher = fetch(baseUrl + params, {
     headers: { "0x-api-key": process.env.ZEROX_API_KEY || "" },
   });
+
 
   if (method === "from") {
     [token1PriceData, token2PriceData, res] = await Promise.all([
