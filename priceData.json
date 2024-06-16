@@ -1,20 +1,20 @@
 {
   "chainId": 42161,
-  "price": "0.00025614380685551",
-  "grossPrice": "0.000256524746103474",
-  "estimatedPriceImpact": "0.095",
+  "price": "0.000277851906569197",
+  "grossPrice": "0.000278265130287674",
+  "estimatedPriceImpact": "0.1023",
   "value": "0",
   "gasPrice": "10000000",
-  "gas": "409417",
-  "estimatedGas": "409417",
+  "gas": "385548",
+  "estimatedGas": "385548",
   "protocolFee": "0",
   "minimumProtocolFee": "0",
   "buyTokenAddress": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-  "buyAmount": "1280719034277552",
-  "grossBuyAmount": "1282623730517370",
-  "sellTokenAddress": "0x912ce59144191c1204e64559fe8253a0e49e6548",
-  "sellAmount": "5000000000000000000",
-  "grossSellAmount": "5000000000000000000",
+  "buyAmount": "277851906569197",
+  "grossBuyAmount": "278265130287674",
+  "sellTokenAddress": "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
+  "sellAmount": "1000000",
+  "grossSellAmount": "1000000",
   "sources": [
     {
       "name": "0x",
@@ -66,13 +66,13 @@
     }
   ],
   "allowanceTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
-  "sellTokenToEthRate": "3894.55834061734033836",
+  "sellTokenToEthRate": "3590.02001",
   "buyTokenToEthRate": "1",
   "fees": {
     "zeroExFee": {
       "feeType": "volume",
       "feeToken": "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
-      "feeAmount": "1904696239818",
+      "feeAmount": "413223718477",
       "billingType": "on-chain"
     }
   },

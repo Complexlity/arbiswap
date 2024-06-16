@@ -221,11 +221,11 @@ app.frame("/", analytics, async (c: StartFrameContext) => {
   return c.res({
     action: "/methods",
     // image: "https://i.postimg.cc/Kv3j32RY/start.png",
-    image: "https://i.postimg.cc/CxytCWs7/start.png",
+    image: "https://i.ibb.co/vCNS827/start2.png",
     intents: [
-      <Button value={"from"}>ETH-TOKEN</Button>,
-      <Button value={"to"}>TOKEN-ETH</Button>,
-      <Button action="/swap/start">TOKEN-TOKEN</Button>,
+      <Button value={"from"}>BUY</Button>,
+      <Button value={"to"}>SELL</Button>,
+      <Button action="/swap/start">SWAP</Button>,
     ],
   });
 });
@@ -910,8 +910,9 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
   const { token1: t1State, token2: t2State } = c.previousState
   let sellDecimals = '18'
   if (t1State && t2State) {
-    sellDecimals = method == "from" ? t2State.dec : t1State.dec
+    sellDecimals = method == "from" ? '18' : t1State.dec
   }
+
   let sellAmount = sellDecimals === "18" ?
     parseEther(tokenAmount).toString()
     : `${tokenAmountAsNumber * Number(`1e${sellDecimals}`)}`
@@ -919,7 +920,7 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
   let token1PriceData: TokenDetails | null = null;
   let token2PriceData: TokenDetails | null = null;
   let res: Response | null = null;
-
+  console.log({sellAmount})
   const params = new URLSearchParams({
     sellToken: token1,
     buyToken: token2,
@@ -938,27 +939,90 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
       getTokenPrice(ca),
       fetcher,
     ]);
-    if (!token1PriceData || !token2PriceData)
-      throw new Error("Could not get token1 or token2 from moralis");
+
+    if (!token1PriceData || !token2PriceData) {
+      throw new Error("Could not fetch tokens data")
+    }
+
+    if (!res.ok) {
+      return c.res({
+        image: <S
+          m={"Could not fetch token data"}
+          e={true}
+          t1={token1PriceData} t2={token2PriceData} />,
+        intents: [
+          <TextInput placeholder={`Amount (in ${token1PriceData.tokenSymbol})`} />,
+          <Button value={method} action={`/confirm/${ca}`}>
+            Next ➡️
+          </Button>,
+          <Button value={method} action="/methods">
+            ⬅️ Back
+          </Button>,
+        ],
+      })
+    }
+
+
     token1PriceData.tokenSymbol = "ETH";
+
   } else {
     [token1PriceData, token2PriceData, res] = await Promise.all([
       getTokenPrice(ca),
       getTokenPrice(),
       fetcher,
     ]);
-    if (!token1PriceData || !token2PriceData)
-      throw new Error("Could not get token1 or token2 from moralis");
-
+    if (!token1PriceData || !token2PriceData) throw new Error("We cannot continue")
+      if (!res.ok) {
+        return c.res({
+          image: (
+            <S
+              m={"Something went wrong fetching token data"}
+              e={true}
+              t1={token1PriceData}
+              t2={token2PriceData}
+            />
+          ),
+          intents: [
+            <TextInput
+              placeholder={`Amount (in ${token1PriceData.tokenSymbol})`}
+            />,
+            <Button value={method} action={`/confirm/${ca}`}>
+              Next ➡️
+            </Button>,
+            <Button value={method} action="/methods">
+              ⬅️ Back
+            </Button>,
+          ],
+        });
+      }
     token2PriceData.tokenSymbol = "ETH";
   }
+  let priceData: ZeroxSwapPriceData | null
+  try {
+    priceData = (await res.json()) as ZeroxSwapPriceData;
+  } catch (error) {
+    console.log({ error })
+    console.log("Price Data error in confirm")
+    return c.res({
+      image: <S t1={token1PriceData} t2={token2PriceData} />,
+      // image: dummyImage,
+      intents: [
+        <TextInput placeholder={`Amount (in ${token1PriceData.tokenSymbol})`} />,
+        <Button value={method} action={`/confirm/${ca}`}>
+          Next ➡️
+        </Button>,
+        <Button value={method} action="/methods">
+          ⬅️ Back
+        </Button>,
+      ],
+    })
+  }
 
-  const priceData = (await res.json()) as ZeroxSwapPriceData;
-  fs.writeFileSync('priceData.json', JSON.stringify(priceData, null, 2))
   // console.log({priceData})
   const tokenAmountReceived = Number
     (priceData.price) * tokenAmountAsNumber;
-
+  console.log({ tokenAmountReceived })
+  console.log(priceData.price)
   const action =
     method === "from" ? `/finish/${token1PriceData.tokenSymbol}/${token2PriceData.tokenSymbol}/${tokenAmount}/${tokenAmountReceived}` : `/a/${token1}/${token2}/${tokenAmountAsNumber}`;
     const transactionTarget =
@@ -967,7 +1031,6 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
 
   return c.res({
     action,
-
     image: (
       <S
         sA={tokenAmountAsNumber}
