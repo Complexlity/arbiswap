@@ -730,11 +730,15 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
   const priceData = (await res.json()) as ZeroxSwapPriceData;
   const tokenAmountReceived = Number(priceData.price) * tokenAmountAsNumber;
 
+
   const action =
-    method === "from" ? `/finish/${token1PriceData.tokenSymbol}/${token2PriceData.tokenSymbol}/${tokenAmount}/${tokenAmountReceived}` : `/a/${token1}/${token2}/${tokenAmount}`;
-  console.log({ action });
-  const transactionTarget =
+    method === "from" ? `/finish/${token1PriceData.tokenSymbol}/${token2PriceData.tokenSymbol}/${tokenAmount}/${tokenAmountReceived}` : `/a/${token1}/${token2}/${tokenAmountAsNumber}`;
+    const transactionTarget =
     method === "from" ? `/tx/${method}/${ca}/${tokenAmount}` : `/approve/${ca}`;
+    console.log({ tokenAmountReceived });
+    console.log({ transactionTarget })
+    console.log({ action });
+  console.log({})
   return c.res({
     action,
 
