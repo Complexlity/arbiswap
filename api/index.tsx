@@ -25,6 +25,7 @@ import {
   getTokenPrice
 } from "../utils/token.js";
 import { ZeroxSwapPriceData, ZeroxSwapQuoteOrder } from "../utils/types.js";
+import { kvStore, nanoid } from "../utils/services.js";
 // Uncomment to use Edge Runtime.
 // export const config = {
 //   runtime: 'edge',
@@ -590,7 +591,7 @@ app.frame("/a/:token1/:token2/:amount", async (c) => {
   console.log({ transactionTarget });
 
   return c.res({
-    action: "/finish",
+    action: `/finish/${token1PriceData.tokenSymbol}/${token2PriceData.tokenSymbol}/${amount}/${tokenAmountReceived}`,
     image: (
       <S
         t1={token1PriceData}
@@ -729,7 +730,7 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
   const tokenAmountReceived = Number(priceData.price) * tokenAmountAsNumber;
 
   const action =
-    method === "from" ? "/finish" : `/a/${token1}/${token2}/${tokenAmount}`;
+    method === "from" ? `/finish/${token1PriceData.tokenSymbol}/${token2PriceData.tokenSymbol}/${tokenAmount}/${tokenAmountReceived}` : `/a/${token1}/${token2}/${tokenAmount}`;
   console.log({ action });
   const transactionTarget =
     method === "from" ? `/tx/${method}/${ca}/${tokenAmount}` : `/approve/${ca}`;
@@ -762,22 +763,140 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
   });
 });
 
+// type RemoveNull<T> =
+//   T extends null
+//   ? never
+//   :T extends object
+//   ? {
+//     [key in keyof T ]: RemoveNull<T[key]>
+//   }
+//   : T
+
+type SwapDetails = {
+  t1: string,
+  t2: string,
+  sA: number,
+  rA: number,
+  id: `0x${string}`,
+}
+
+
+const formatDate = (date: Date) => {
+  const options = {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  };
+  //@ts-ignore
+  return new Intl.DateTimeFormat('en-US', options).format(date);
+};
+
+
+async function addUser(userId: string, tx: SwapDetails) {
+  const now = formatDate(new Date())
+
+  const tKey = nanoid()
+  const uKey = `user:${userId}:tx:${tKey}`;
+  console.log({uKey})
+  try {
+    const r1 = await kvStore.set(uKey, JSON.stringify({...tx, date: now}))
+    console.log("Done setting tx", r1)
+  }
+  catch(error) {
+    console.log({ error })
+    console.log("Error setting user transaction in store")
+    return false
+  }
+
+  const uListKey = `user:${userId}:txs`;
+  console.log({ uListKey })
+  try {
+
+    const l1 = await kvStore.rpush(uListKey, tKey)
+    console.log("Transaction key added to user list", l1);
+  } catch (error) {
+    console.log({ error })
+    console.log("There was an issue add to the user list")
+    return false
+  }
+
+  return true
+
+}
 
 
 app.frame("/finish", analytics, async (c: StartFrameContext) => {
   const { transactionId, frameData, previousState } = c;
 
-  const transactionHash = `https://arbiscan.io/tx/${transactionId}`;
-  console.log({ transactionHash });
+  const { token1, token2, sendAmount, receiveAmount } = previousState
+  console.log(previousState, frameData, transactionId)
+
+  if (token1 && token2 && sendAmount && receiveAmount && frameData && transactionId) {
+    const fid = frameData.fid
+    const res = await addUser(`${fid}`, {
+      t1: token1.sym,
+      t2: token2.sym,
+      sA: sendAmount,
+      rA: receiveAmount,
+      id: transactionId
+    })
+    console.log(res)
+  }
+
+
+
+  const explorerLink = `https://arbiscan.io/tx/${transactionId}`;
+  console.log({ transactionHash: explorerLink });
 
   return c.res({
     image: "https://pbs.twimg.com/media/F4M9IOlWwAEgTDf.jpg",
     intents: [
-      <Button.Link href={transactionHash}>View Transaction</Button.Link>,
+      <Button.Link href={explorerLink}>View Transaction</Button.Link>,
       <Button.Reset>Home</Button.Reset>,
     ],
   });
 });
+
+app.frame('/finish/:t1/:t2/:sA/:rA', async (c) => {
+  let { t1, t2, sA: sAString, rA: rAString } = c.req.param()
+  const { frameData, transactionId } = c
+  const sA = Number(sAString)
+  const rA = Number(rAString)
+
+
+  if (
+    t1 &&
+    t2 &&
+    sA &&
+    rA &&
+    frameData &&
+    transactionId
+  ) {
+    const fid = frameData.fid;
+    const res = await addUser(`${fid}`, {
+      t1,
+      t2,
+      sA,
+      rA,
+      id: transactionId
+    });
+    console.log(res);
+  }
+
+  const explorerLink = `https://arbiscan.io/tx/${transactionId}`;
+  console.log({ transactionHash: explorerLink });
+
+  return c.res({
+    image: "https://pbs.twimg.com/media/F4M9IOlWwAEgTDf.jpg",
+    intents: [
+      <Button.Link href={explorerLink}>View Transaction</Button.Link>,
+      <Button.Reset>Home</Button.Reset>,
+    ],
+  });
+
+})
 
 app.transaction("/approve/:ca", async (c) => {
   const ca = c.req.param("ca");
