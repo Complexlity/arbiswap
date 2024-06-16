@@ -114,7 +114,7 @@ async function handleTokenDetails(
   const heading = getHeading(method);
 
   return c.res({
-    image: <S t1={token1} t2={token2} />,
+    image: <S  t1={token1} t2={token2} />,
     // image: dummyImage,
     intents: [
       <TextInput placeholder={`Amount (in ${token1.tokenSymbol})`} />,
@@ -626,7 +626,7 @@ app.frame("/methods", async (c) => {
   const { buttonValue } = c;
   if (buttonValue == "from") {
     return c.res({
-      image: <S t1={ethDetails} />,
+      image: <S m={"Leave blank for $ARB"} t1={ethDetails} />,
       intents: [
         <TextInput placeholder="Enter Contract Address e.g: 0x.." />,
         <Button value="from" action="/token">
@@ -638,7 +638,7 @@ app.frame("/methods", async (c) => {
   }
 
   return c.res({
-    image: <S t2={ethDetails} />,
+    image: <S m={"Leave blank for $ARB"} t2={ethDetails} />,
     intents: [
       <TextInput placeholder="Enter Token Address e.g: 0x.." />,
       <Button action="/token" value="to">
@@ -1032,11 +1032,15 @@ function S({
   t2: t2,
   sA: sA,
   rA: rA,
+  m,
+  e
 }: {
   t1?: { tokenLogo: string; tokenSymbol: string } & Partial<TokenDetails>;
   t2?: { tokenLogo: string; tokenSymbol: string } & Partial<TokenDetails>;
   sA?: number;
   rA?: number;
+  m?: string,
+  e?:boolean
 }) {
   const t1Logo = t1 ? t1.tokenLogo : dummyImage;
   const t2Logo = t2 ? t2.tokenLogo : dummyImage;
@@ -1136,6 +1140,12 @@ function S({
           <span>Arbitrum</span>
         </span>
       </div>
+       {m ? <div tw="absolute bottom-10 w-full flex justify-center rounded-full mx-auto">
+          <span tw={`w-3/5 flex justify-center rounded-xl py-2 ${e ? "bg-red-400" : "bg-green-600"}`}>
+            {m}
+          </span>
+        </div>
+        : <div tw="hidden"></div>}
     </div>
   );
 }
