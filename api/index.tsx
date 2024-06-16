@@ -680,6 +680,7 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
   if (!ca) throw new Error("Contract address missing");
   let { inputText: tokenAmount } = c;
   let tokenAmountAsNumber = Number(tokenAmount);
+  console.log({tokenAmount})
   if (isNaN(tokenAmountAsNumber) || tokenAmountAsNumber == 0 || !tokenAmount) {
     tokenAmount = "0.01";
     tokenAmountAsNumber = Number(tokenAmount);
@@ -728,6 +729,7 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
   }
 
   const priceData = (await res.json()) as ZeroxSwapPriceData;
+  console.log({priceData})
   const tokenAmountReceived = Number(priceData.price) * tokenAmountAsNumber;
 
 
@@ -735,9 +737,9 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
     method === "from" ? `/finish/${token1PriceData.tokenSymbol}/${token2PriceData.tokenSymbol}/${tokenAmount}/${tokenAmountReceived}` : `/a/${token1}/${token2}/${tokenAmountAsNumber}`;
     const transactionTarget =
     method === "from" ? `/tx/${method}/${ca}/${tokenAmount}` : `/approve/${ca}`;
-    console.log({ tokenAmountReceived });
-    console.log({ transactionTarget })
-    console.log({ action });
+    // console.log({ tokenAmountReceived });
+    // console.log({ transactionTarget })
+    // console.log({ action });
   console.log({})
   return c.res({
     action,
