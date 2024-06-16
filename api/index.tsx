@@ -101,13 +101,13 @@ async function handleTokenDetails(
     [token1, token2] = await Promise.all([getTokenPrice(), getTokenPrice(ca)]);
     // if (!token1 || !token2) throw new Error("Could not get token1 or token2 from moralis")
     if (!token1 || !token2)
-      return invalidOrMissingCaError(c, method, "Invalid Contract Address");
+      return invalidOrMissingCaError(c, method, "Unsupported Contract Address");
     token1.tokenSymbol = "ETH";
   } else {
     [token1, token2] = await Promise.all([getTokenPrice(ca), getTokenPrice()]);
     // if(!token1 || !token2) throw new Error("Could not get token1 or token2 from moralis")
     if (!token1 || !token2)
-      return invalidOrMissingCaError(c, method, "Invalid Contract Address");
+      return invalidOrMissingCaError(c, method, "Unsupported Contract Address");
     token2.tokenSymbol = "ETH";
   }
 
@@ -139,11 +139,11 @@ async function invalidOrMissingCaError(
   if (method === "from") {
     return c.res({
       image: (
-        //@ts-expect-error
-        <S t1={ethDetails} heading={heading} message={error} error={true} />
+
+        <S t1={ethDetails} m={error} e={true} />
       ),
       intents: [
-        <TextInput placeholder="Enter Token Address e.g: 0x.." />,
+        <TextInput placeholder="CA. Leave blank for $ARB" />,
         <Button action="/token" value="from">
           Next ➡️
         </Button>,
@@ -154,9 +154,9 @@ async function invalidOrMissingCaError(
     });
   } else {
     return c.res({
-      image: <S t2={ethDetails} />,
+      image: <S m={error} e={true} t2={ethDetails} />,
       intents: [
-        <TextInput placeholder="Enter Contract Address e.g: 0x.." />,
+        <TextInput placeholder="CA. Leave blank for $ARB" />,
         <Button value="to" action="/token">
           Next ➡️
         </Button>,
