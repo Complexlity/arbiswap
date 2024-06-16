@@ -1,5 +1,6 @@
 /** @jsxImportSource frog/jsx */
 
+import fs from 'fs'
 import {
   Button,
   FrameContext,
@@ -48,11 +49,13 @@ type State = {
     ca: string,
     logo: string,
     sym: string
+    dec: string
   } | null,
   token2: {
     ca: string,
     logo: string,
-    sym: string
+    sym: string,
+    dec: string
   } | null,
   sendAmount: number | null,
   receiveAmount: number | null
@@ -94,24 +97,67 @@ async function handleTokenDetails(
   ca: string,
   method: string
 ) {
+  const { previousState, deriveState } = c
+  let newState = previousState
   let token1: TokenDetails | null = null;
   let token2: TokenDetails | null = null;
-
+  console.log({method})
   if (method === "from") {
     [token1, token2] = await Promise.all([getTokenPrice(), getTokenPrice(ca)]);
     // if (!token1 || !token2) throw new Error("Could not get token1 or token2 from moralis")
-    if (!token1 || !token2)
+
+    if (!token1 || !token2) {
       return invalidOrMissingCaError(c, method, "Unsupported Contract Address");
+    }
+
+
     token1.tokenSymbol = "ETH";
+
+     newState = deriveState(previousState => {
+      previousState.token1 = {
+        ca: ETHEREUM_ADDRESS,
+        sym: 'ETH',
+        logo: ethDetails.tokenLogo,
+        dec: '18'
+      }
+      previousState.token2 = {
+        ca,
+        //@ts-expect-error
+        sym:  token2.tokenSymbol,
+        //@ts-expect-error
+        logo: token2.tokenLogo,
+        //@ts-expect-error
+        dec: token2.tokenDecimals
+      }
+    })
   } else {
     [token1, token2] = await Promise.all([getTokenPrice(ca), getTokenPrice()]);
     // if(!token1 || !token2) throw new Error("Could not get token1 or token2 from moralis")
     if (!token1 || !token2)
       return invalidOrMissingCaError(c, method, "Unsupported Contract Address");
     token2.tokenSymbol = "ETH";
+    console.log("I am here")
+     newState = deriveState((previousState) => {
+      previousState.token1 = {
+        ca,
+        //@ts-expect-error
+        sym: token1.tokenSymbol,
+        //@ts-expect-error
+        logo: token1.tokenLogo,
+        //@ts-expect-error
+        dec: token1.tokenDecimals,
+      };
+      previousState.token2 = {
+        ca: ETHEREUM_ADDRESS,
+        sym: "ETH",
+        logo: ethDetails.tokenLogo,
+        dec: "18",
+      };
+
+    });
   }
 
-  const heading = getHeading(method);
+// console.log({newState})
 
   return c.res({
     image: <S  t1={token1} t2={token2} />,
@@ -199,14 +245,33 @@ app.frame("/swap/token1", analytics, async (c) => {
   let state = previousState;
   if (buttonValue !== "back") {
     const token1 = inputText;
-    if (!token1) throw new Error("Missing token 1");
+    if (!token1) {
+      return c.res({
+        image: <S m="Invalid Token Address" e={true} />,
+        intents: [
+          <TextInput placeholder="Token 1 CA" />,
+          <Button action="/swap/token1">Next ➡️</Button>,
+          <Button.Reset>⬅️ Back</Button.Reset>,
+        ],
+      });
+    }
     const token1PriceData = await getTokenPrice(token1);
-    if (!token1PriceData) throw new Error("Token 1 Price data not secured");
+      if (!token1PriceData) {
+        return c.res({
+          image: <S m="Unsupported Token Address" e={true} />,
+          intents: [
+            <TextInput placeholder="Token 1 CA" />,
+            <Button action="/swap/token1">Next ➡️</Button>,
+            <Button.Reset>⬅️ Back</Button.Reset>,
+          ],
+        });
+      }
     state = deriveState((previousState) => {
       previousState.token1 = {
         ca: token1PriceData.tokenAddress,
         logo: token1PriceData.tokenLogo,
         sym: token1PriceData.tokenSymbol,
+        dec: token1PriceData.tokenDecimals
       };
     });
   } else {
@@ -233,18 +298,61 @@ app.frame("/swap/token1", analytics, async (c) => {
 app.frame("/swap/token2", analytics, async (c) => {
   const { inputText, previousState, deriveState, buttonValue } = c;
   let state = previousState;
+  let token1 = previousState.token1;
+  let token2 = previousState.token2;
+  if (!token1) {
+    return c.res({
+      image: <S m="Invalid Token Address" e={true} />,
+      intents: [
+        <TextInput placeholder="Token 1 CA" />,
+        <Button action="/swap/token1">Next ➡️</Button>,
+        <Button.Reset>⬅️ Back</Button.Reset>,
+      ],
+    });
+  }
   if (buttonValue !== "back") {
-    let token1 = previousState.token1;
-    if (!token1) throw new Error("Token 1 missing");
-    let token2 = inputText;
-    if (!token2) throw new Error("There not input text");
+    let token2 = inputText
+    if (!token2) {
+      return c.res({
+        image: (
+          <S
+            m={"Invalid Token Address"}
+            t1={{
+              tokenLogo: token1.logo,
+              tokenSymbol: token1.sym,
+            }}
+          />
+        ),
+        intents: [
+          <TextInput placeholder="Token 2 CA" />,
+          <Button action="/swap/token2">Next ➡️</Button>,
+          <Button action="/swap/start">⬅️ Back</Button>,
+        ],
+      });
+    }
     const token2PriceData = await getTokenPrice(token2);
-    if (!token2PriceData) throw new Error("Token to not found");
+    if (!token2PriceData) {
+      return c.res({
+        image: (
+          <S
+            m="Unsupported Token Address"
+            e={true}
+            t1={{ tokenLogo: token1.logo, tokenSymbol: token1.sym }}
+          />
+        ),
+        intents: [
+          <TextInput placeholder="Token 2 CA" />,
+          <Button action="/swap/token2">Next ➡️</Button>,
+          <Button action="/swap/start">⬅️ Back</Button>,
+        ],
+      });
+    }
     state = deriveState((previousState) => {
       previousState.token2 = {
         ca: token2,
         logo: token2PriceData.tokenLogo,
         sym: token2PriceData.tokenSymbol,
+        dec: token2PriceData.tokenDecimals
       };
     });
   } else {
@@ -253,8 +361,23 @@ app.frame("/swap/token2", analytics, async (c) => {
     });
   }
 
-  const { token1, token2 } = state;
-  if (!token1 || !token2) throw new Error("Token 1 or Token 2 missing");
+  token2 = state.token2
+  if (!token2) {
+    return c.res({
+      image: (
+        <S
+          m="Invalid Token Address"
+          e={true}
+          t1={{ tokenLogo: token1.logo, tokenSymbol: token1.sym }}
+        />
+      ),
+      intents: [
+        <TextInput placeholder="Token 2 CA" />,
+        <Button action="/swap/token2">Next ➡️</Button>,
+        <Button action="/swap/start">⬅️ Back</Button>,
+      ],
+    });
+  }
 
   let token1Details = {
     tokenLogo: token1.logo,
@@ -283,23 +406,88 @@ app.frame("/swap/amount", analytics, async (c) => {
   if (!amount) amount = 0.01;
   let state = previousState;
   const { token1, token2 } = previousState;
-  if (!token1 || !token2) throw new Error("Token 1 or Token 2 missing");
+    if (!token1) {
+      return c.res({
+        image: <S m="Invalid Token Address" e={true} />,
+        intents: [
+          <TextInput placeholder="Token 1 CA" />,
+          <Button action="/swap/token1">Next ➡️</Button>,
+          <Button.Reset>⬅️ Back</Button.Reset>,
+        ],
+      });
+    }
+
+  if (!token2) {
+    return c.res({
+      image: (
+        <S
+          m="Invalid Token Address"
+          e={true}
+          t1={{ tokenLogo: token1.logo, tokenSymbol: token1.sym }}
+        />
+      ),
+      intents: [
+        <TextInput placeholder="Token 2 CA" />,
+        <Button action="/swap/token2">Next ➡️</Button>,
+        <Button action="/swap/start">⬅️ Back</Button>,
+      ],
+    });
+  }
   let tokenAmountReceived = 0;
+  let sellAmount = parseEther(`${amount}`).toString()
+  if (token1.dec !== "18") {
+    sellAmount = `${amount * Number(`1e${token1.dec}`)}`;
+  }
+  console.log({sellAmount})
 
   if (buttonValue !== "back") {
     const params = new URLSearchParams({
       sellToken: token1.ca,
       buyToken: token2.ca,
-      sellAmount: parseEther(`${amount}`).toString(),
+      sellAmount,
     }).toString();
     const baseUrl = `https://arbitrum.api.0x.org/swap/v1/price?`;
     // fs.writeFileSync("price.json", JSON.stringify(priceData, null, 2));
     const fetcher = fetch(baseUrl + params, {
       headers: { "0x-api-key": process.env.ZEROX_API_KEY || "" },
     });
-    const res = await fetcher;
-    const priceData = (await res.json()) as ZeroxSwapPriceData;
-    tokenAmountReceived = Number(priceData.price) * amount;
+    let priceData: ZeroxSwapPriceData | null = null
+    try {
+      const res = await fetcher;
+      priceData = (await res.json()) as ZeroxSwapPriceData;
+      tokenAmountReceived = Number(priceData.price) * amount;
+    } catch (error) {
+      console.log({error})
+      console.log("Price Date fetch error")
+      priceData = null
+    }
+
+    if (!priceData) {
+        let token1PriceData = {
+          tokenLogo: token1.logo,
+          tokenSymbol: token1.sym,
+        };
+        let token2PriceData = {
+          tokenLogo: token2.logo,
+          tokenSymbol: token2.sym,
+        };
+
+      return c.res({
+        image: <S
+          m="Swap pool not found"
+          e={true}
+          t1={token1PriceData} t2={token2PriceData} />,
+        intents: [
+          <TextInput placeholder={`Amount in ${token1.sym}`} />,
+          <Button action="/swap/amount">Next ➡️</Button>,
+          <Button action="/swap/token1" value="back">
+            ⬅️ Back
+          </Button>,
+        ],
+      });
+    }
+
+
 
     state = deriveState((previousState) => {
       (previousState.sendAmount = amount),
@@ -533,6 +721,7 @@ app.frame("/s/:token1/:token2/:amount", analytics, async (c) => {
 });
 
 app.frame("/a/:token1/:token2/:amount", async (c) => {
+
   console.log("I am in approved");
   let token1 = c.req.param("token1");
   let token2 = c.req.param("token2") ?? ETHEREUM_ADDRESS;
@@ -550,15 +739,31 @@ app.frame("/a/:token1/:token2/:amount", async (c) => {
     amountAsNumber = Number(amount);
   }
 
+   const { token1: t1State, token2: t2State } = c.previousState;
+   let sellDecimals = "18";
+   if (t1State && t2State) {
+     sellDecimals = t1State.dec
+   }
+
+   let sellAmount =
+     sellDecimals === "18"
+       ? parseEther(amount).toString()
+       : `${amountAsNumber * Number(`1e${sellDecimals}`)}`;
+
+
+
   let token1PriceData: TokenDetails | null = null;
   let token2PriceData: TokenDetails | null = null;
   let res: Response | null = null;
+
+
+
 
   const baseUrl = `https://arbitrum.api.0x.org/swap/v1/price?`;
   const params = new URLSearchParams({
     sellToken: token1,
     buyToken: token2,
-    sellAmount: parseEther(amount).toString(),
+    sellAmount
   }).toString();
 
   const fetcher = fetch(baseUrl + params, {
@@ -586,6 +791,7 @@ app.frame("/a/:token1/:token2/:amount", async (c) => {
   }
 
   const priceData = (await res.json()) as ZeroxSwapPriceData;
+  fs.writeFileSync('priceData.json', JSON.stringify(priceData, null , 2))
   const tokenAmountReceived = Number(priceData.price) * Number(amount);
 
   const transactionTarget = `/sell/${token1}/${token2}/${amount}`;
@@ -606,8 +812,11 @@ app.frame("/a/:token1/:token2/:amount", async (c) => {
         Confirm Swap
       </Button.Transaction>,
       hasEth ? (
-        <Button value={"to"} action="/methods">
-          Cancel ❌
+        <Button
+          value={`to-${token2}`}
+          action={`/exact_token/${token2}`}
+        >
+          ⬅️ Back
         </Button>
       ) : (
         <Button
@@ -623,7 +832,8 @@ app.frame("/a/:token1/:token2/:amount", async (c) => {
 });
 
 app.frame("/methods", async (c) => {
-  const { buttonValue } = c;
+  let { buttonValue } = c;
+
   if (buttonValue == "from") {
     return c.res({
       image: <S m={"Leave blank for $ARB"} t1={ethDetails} />,
@@ -666,21 +876,28 @@ app.frame("/token", analytics, async (c: StartFrameContext) => {
   return handleTokenDetails(c, ca, method);
 });
 app.frame("/exact_token/:ca", analytics, async (c: StartFrameContext) => {
-  let method = "from";
+  let { buttonValue } = c
+  let method = "from"
   let ca = c.req.param("ca");
+
+
+  if (buttonValue && buttonValue.includes("-")) {
+    method = buttonValue.split('-')[0].trim()
+  }
   if (!ca) ca = DEFAULT_TOKEN_CA;
   return handleTokenDetails(c, ca, method);
 });
 
 app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
-  const { buttonValue } = c;
+  const { buttonValue, previousState } = c;
+  console.log({ previousState })
   let method = buttonValue;
   if (!method) method = "from";
   const ca = c.req.param("ca");
   if (!ca) throw new Error("Contract address missing");
   let { inputText: tokenAmount } = c;
   let tokenAmountAsNumber = Number(tokenAmount);
-  console.log({tokenAmount})
+  console.log({ tokenAmount })
   if (isNaN(tokenAmountAsNumber) || tokenAmountAsNumber == 0 || !tokenAmount) {
     tokenAmount = "0.01";
     tokenAmountAsNumber = Number(tokenAmount);
@@ -690,6 +907,14 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
   const eth = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
   let token1 = method === "from" ? eth : ca;
   let token2 = method === "from" ? ca : eth;
+  const { token1: t1State, token2: t2State } = c.previousState
+  let sellDecimals = '18'
+  if (t1State && t2State) {
+    sellDecimals = method == "from" ? t2State.dec : t1State.dec
+  }
+  let sellAmount = sellDecimals === "18" ?
+    parseEther(tokenAmount).toString()
+    : `${tokenAmountAsNumber * Number(`1e${sellDecimals}`)}`
 
   let token1PriceData: TokenDetails | null = null;
   let token2PriceData: TokenDetails | null = null;
@@ -698,7 +923,7 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
   const params = new URLSearchParams({
     sellToken: token1,
     buyToken: token2,
-    sellAmount: parseEther(tokenAmount).toString(),
+    sellAmount,
   }).toString();
 
   // fs.writeFileSync("price.json", JSON.stringify(priceData, null, 2));
@@ -729,18 +954,17 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
   }
 
   const priceData = (await res.json()) as ZeroxSwapPriceData;
-  console.log({priceData})
-  const tokenAmountReceived = Number(priceData.price) * tokenAmountAsNumber;
-
+  fs.writeFileSync('priceData.json', JSON.stringify(priceData, null, 2))
+  // console.log({priceData})
+  const tokenAmountReceived = Number
+    (priceData.price) * tokenAmountAsNumber;
 
   const action =
     method === "from" ? `/finish/${token1PriceData.tokenSymbol}/${token2PriceData.tokenSymbol}/${tokenAmount}/${tokenAmountReceived}` : `/a/${token1}/${token2}/${tokenAmountAsNumber}`;
     const transactionTarget =
     method === "from" ? `/tx/${method}/${ca}/${tokenAmount}` : `/approve/${ca}`;
-    // console.log({ tokenAmountReceived });
-    // console.log({ transactionTarget })
-    // console.log({ action });
-  console.log({})
+
+
   return c.res({
     action,
 
@@ -762,8 +986,11 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
       method == "from" ? (
         <Button action={`/exact_token/${ca}`}>⬅️ Back</Button>
       ) : (
-        <Button value="to" action="/methods">
-          Cancel ❌
+        <Button
+          value={`to-${ca}`}
+          action={`/exact_token/${ca}`}
+        >
+          ⬅️ Back
         </Button>
       ),
     ],
@@ -861,7 +1088,7 @@ app.frame("/finish", analytics, async (c: StartFrameContext) => {
     image: "https://pbs.twimg.com/media/F4M9IOlWwAEgTDf.jpg",
     intents: [
       <Button.Link href={explorerLink}>View Transaction</Button.Link>,
-      <Button.Reset>Home</Button.Reset>,
+      <Button.Reset>Home 🏠</Button.Reset>,
     ],
   });
 });
@@ -891,7 +1118,7 @@ app.frame("/finish/:t1/:t2/:sA/:rA", analytics, async (c) => {
     image: "https://pbs.twimg.com/media/F4M9IOlWwAEgTDf.jpg",
     intents: [
       <Button.Link href={explorerLink}>View Transaction</Button.Link>,
-      <Button.Reset>Home</Button.Reset>,
+      <Button.Reset>Home 🏠</Button.Reset>,
     ],
   });
 });
@@ -917,13 +1144,22 @@ app.transaction("/sell/:token1/:token2/:amount", analytics, async (c) => {
   console.log({ token1, token2, amount });
   if (!token1 || !token2 || !amount) throw new Error("Values missing");
   if (isNaN(Number(amount)) || Number(amount) == 0) amount = "0.1";
+
+ const { token1: t1State, token2: t2State } = c.previousState;
+ let sellDecimals = "18";
+ if (t1State && t2State) {
+   sellDecimals = t1State.dec
+ }
+ let sellAmount =
+   sellDecimals === "18"
+     ? parseEther(amount).toString()
+     : `${Number(amount) * Number(`1e${sellDecimals}`)}`;
+
+
   const params = new URLSearchParams({
     sellToken: token1,
     buyToken: token2,
-    sellAmount:
-      token1 === USDC_ADDRESS
-        ? `${Number(amount) * 1000000}`
-        : parseEther(amount).toString(),
+    sellAmount,
     feeRecipient: "0x8ff47879d9eE072b593604b8b3009577Ff7d6809",
     buyTokenPercentageFee: "0.01",
   }).toString();
