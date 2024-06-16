@@ -9,14 +9,17 @@
   },
   "dependencies": {
     "@moralisweb3/common-evm-utils": "^2.26.2",
+    "@upstash/redis": "^1.31.5",
     "bun-types": "^1.1.12",
     "dotenv": "^16.4.5",
     "frog": "latest",
     "hono": "^4",
     "lz-string": "^1.5.0",
     "moralis": "^2.26.2",
+    "nanoid": "^5.0.7",
     "pinata-fdk": "^3.10.2",
-    "viem": "^2.13.3"
+    "viem": "^2.13.3",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",

@@ -762,9 +762,11 @@ app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
   });
 });
 
+
+
 app.frame("/finish", analytics, async (c: StartFrameContext) => {
-  const { transactionId, frameData } = c;
-  console.log("User transacted", frameData?.fid);
+  const { transactionId, frameData, previousState } = c;
+
   const transactionHash = `https://arbiscan.io/tx/${transactionId}`;
   console.log({ transactionHash });
 
