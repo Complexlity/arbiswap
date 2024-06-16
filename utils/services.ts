@@ -9,7 +9,7 @@ config();
 const envSchema = z.object({
   REDIS_URL: z.string().url(),
   REDIS_TOKEN: z.string(),
-  ZEROX_API_KEY: z.string(),
+  ZEROX_API_KEY: z.string().optional(),
   MORALIS_API_KEY: z.string(),
   PINATA_JWT: z.string(),
   PINATA_GATEWAY: z.string(),
@@ -46,7 +46,8 @@ export async function zeroxSDK(
     chain ? chain + "." : ""
   }api.0x.org/swap/v1/${type}?`;
   console.log(baseUrl + params);
-	const res = await fetch(baseUrl + params.toString(), {
+  const res = await fetch(baseUrl + params.toString(), {
+    //@ts-expect-error
     headers: { "0x-api-key": ZEROX_API_KEY },
   });
 
