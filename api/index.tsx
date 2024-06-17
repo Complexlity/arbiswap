@@ -24,6 +24,7 @@ import { fdk } from "../utils/pinata.js";
 import { kvStore, nanoid } from "../utils/services.js";
 import { TokenDetails, getTokenPrice } from "../utils/token.js";
 import { ZeroxSwapPriceData, ZeroxSwapQuoteOrder } from "../utils/types.js";
+import { MiddlewareHandler } from "frog";
 // Uncomment to use Edge Runtime.
 // export const config = {
 //   runtime: 'edge',
@@ -84,11 +85,19 @@ const analytics = fdk.analyticsMiddleware({
   frameId: "buy-tokens-on-arbitrum",
 });
 
+// const analytics = (c: AnyFrameContext): AnyFrameContext => c;
 type StartFrameContext = FrameContext<
   {
     State: State;
   },
   "/",
+  BlankInput
+>;
+type AnyFrameContext = FrameContext<
+  {
+    State: State;
+  },
+  string,
   BlankInput
 >;
 
@@ -226,7 +235,7 @@ async function invalidOrMissingCaError(
 const dummyImage = "https://i.ibb.co/VYCmKgj/dummy-Image.jpg";
 // image: "https://i.postimg.cc/Kv3j32RY/start.png",
 
-app.frame("/", analytics, async (c: StartFrameContext) => {
+app.frame("/",  async (c: StartFrameContext) => {
   return c.res({
     title: "Arbiswap, Swap all tokens on arbitrum",
     action: "/methods",
@@ -240,7 +249,7 @@ app.frame("/", analytics, async (c: StartFrameContext) => {
   });
 });
 
-app.frame("/swap/start", analytics, async (c) => {
+app.frame("/swap/start",  async (c) => {
   return c.res({
     image: <S />,
     intents: [
@@ -250,7 +259,7 @@ app.frame("/swap/start", analytics, async (c) => {
     ],
   });
 });
-app.frame("/swap/token1", analytics, async (c) => {
+app.frame("/swap/token1",  async (c) => {
   const { inputText, deriveState, buttonValue, previousState } = c;
   let state = previousState;
   if (buttonValue !== "back") {
@@ -305,7 +314,7 @@ app.frame("/swap/token1", analytics, async (c) => {
   });
 });
 
-app.frame("/swap/token2", analytics, async (c) => {
+app.frame("/swap/token2",  async (c) => {
   const { inputText, previousState, deriveState, buttonValue } = c;
   let state = previousState;
   let token1 = previousState.token1;
@@ -411,7 +420,7 @@ app.frame("/swap/token2", analytics, async (c) => {
   });
 });
 
-app.frame("/swap/amount", analytics, async (c) => {
+app.frame("/swap/amount",  async (c) => {
   const { inputText, deriveState, previousState, buttonValue } = c;
   let amount = Number(inputText);
   if (!amount) amount = 0.01;
@@ -543,7 +552,7 @@ app.frame("/swap/amount", analytics, async (c) => {
   });
 });
 
-app.frame("/swap/approve", analytics, async (c) => {
+app.frame("/swap/approve",  async (c) => {
   console.log("I am in approved");
 
   const { previousState } = c;
@@ -583,7 +592,7 @@ app.frame("/swap/approve", analytics, async (c) => {
   });
 });
 
-app.frame("/s/:token1/:token2/:amount", analytics, async (c) => {
+app.frame("/s/:token1/:token2/:amount",  async (c) => {
   const { inputText, buttonValue } = c;
   let token1PriceData: TokenDetails | null = null;
   let token2PriceData: TokenDetails | null = null;
@@ -916,7 +925,7 @@ function getHeading(method: string) {
   return method === "from" ? "Preview Purchase" : "Preview Sell";
 }
 
-app.frame("/token", analytics, async (c: StartFrameContext) => {
+app.frame("/token",  async (c: StartFrameContext) => {
   const { inputText, buttonValue } = c;
   let ca = inputText;
   let method = buttonValue;
@@ -928,7 +937,7 @@ app.frame("/token", analytics, async (c: StartFrameContext) => {
 
   return handleTokenDetails(c, ca, method);
 });
-app.frame("/exact_token/:ca", analytics, async (c: StartFrameContext) => {
+app.frame("/exact_token/:ca",  async (c: StartFrameContext) => {
   let { buttonValue } = c;
   let method = "from";
   let ca = c.req.param("ca");
@@ -940,7 +949,7 @@ app.frame("/exact_token/:ca", analytics, async (c: StartFrameContext) => {
   return handleTokenDetails(c, ca, method);
 });
 
-app.frame("/confirm/:ca", analytics, async (c: StartFrameContext) => {
+app.frame("/confirm/:ca",  async (c: StartFrameContext) => {
   const { buttonValue, previousState } = c;
   console.log({ previousState });
   let method = buttonValue;
@@ -1188,7 +1197,7 @@ async function addUser(userId: string, tx: SwapDetails) {
   return true;
 }
 
-app.frame("/finish", analytics, async (c: StartFrameContext) => {
+app.frame("/finish",  async (c: StartFrameContext) => {
   const { transactionId, frameData, previousState } = c;
 
   const { token1, token2, sendAmount, receiveAmount } = previousState;
@@ -1225,7 +1234,7 @@ app.frame("/finish", analytics, async (c: StartFrameContext) => {
   });
 });
 
-app.frame("/finish/:t1/:t2/:sA/:rA", analytics, async (c) => {
+app.frame("/finish/:t1/:t2/:sA/:rA",  async (c) => {
   let { t1, t2, sA: sAString, rA: rAString } = c.req.param();
   const { frameData, transactionId } = c;
   const sA = Number(sAString);
@@ -1255,7 +1264,7 @@ app.frame("/finish/:t1/:t2/:sA/:rA", analytics, async (c) => {
   });
 });
 
-app.transaction("/approve/:ca", analytics, async (c) => {
+app.transaction("/approve/:ca",  async (c) => {
   const ca = c.req.param("ca");
   const maxApproval = BigInt(2) ** BigInt(256) - BigInt(1);
 
@@ -1268,7 +1277,7 @@ app.transaction("/approve/:ca", analytics, async (c) => {
   });
 });
 
-app.transaction("/sell/:token1/:token2/:amount", analytics, async (c) => {
+app.transaction("/sell/:token1/:token2/:amount",  async (c) => {
   console.log("I am in sell");
   const token1 = c.req.param("token1");
   const token2 = c.req.param("token2");
@@ -1320,7 +1329,7 @@ type StartTransactionContext = TransactionContext<
 
 app.transaction(
   "/tx/:method/:ca/:amount",
-  analytics,
+  
   async (c: StartTransactionContext) => {
     const method = c.req.param("method");
     const ca = c.req.param("ca");
