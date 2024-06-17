@@ -232,8 +232,8 @@ app.frame("/", analytics, async (c: StartFrameContext) => {
     action: "/methods",
     image: "https://i.ibb.co/vCNS827/start2.png",
     intents: [
-      <Button value={"from"}>BUY ↗️</Button>,
-      <Button value={"to"}>SELL ↙️</Button>,
+      <Button value={"from"}>BUY ↙️</Button>,
+      <Button value={"to"}>SELL ↗️</Button>,
       <Button action="/swap/start">SWAP 🔁</Button>,
     ],
     browserLocation: "https://app.uniswap.org/swap?chain=arbitrum",
