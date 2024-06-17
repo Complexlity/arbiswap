@@ -76,7 +76,8 @@ export const app = new Frog<{ State: State }>({
     },
     sendAmount: 0,
     receiveAmount: 0,
-  },
+    },
+  browserLocation: "https://app.uniswap.org/swap?chain=arbitrum"
 });
 
 const analytics = fdk.analyticsMiddleware({
