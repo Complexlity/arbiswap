@@ -236,6 +236,7 @@ app.frame("/", analytics, async (c: StartFrameContext) => {
       <Button value={"to"}>SELL</Button>,
       <Button action="/swap/start">SWAP</Button>,
     ],
+    browserLocation: "https://app.uniswap.org/swap?chain=arbitrum",
   });
 });
 
