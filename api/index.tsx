@@ -224,12 +224,12 @@ async function invalidOrMissingCaError(
 
 // const dummyImage = "https://i.postimg.cc/Kv3j32RY/start.png";
 const dummyImage = "https://i.ibb.co/VYCmKgj/dummy-Image.jpg";
+// image: "https://i.postimg.cc/Kv3j32RY/start.png",
 
 app.frame("/", analytics, async (c: StartFrameContext) => {
   return c.res({
     title: "Arbiswap, Swap all tokens on arbitrum",
     action: "/methods",
-    // image: "https://i.postimg.cc/Kv3j32RY/start.png",
     image: "https://i.ibb.co/vCNS827/start2.png",
     intents: [
       <Button value={"from"}>BUY</Button>,
