@@ -88,7 +88,7 @@ try {
   const priceData = response.result;
 
   if(eth) priceData.tokenLogo = "https://i.ibb.co/Mg8Yd81/eth.png";
-  fs.writeFileSync('token.json', JSON.stringify(priceData))
+  // fs.writeFileSync('token.json', JSON.stringify(priceData))
   return priceData as unknown as TokenDetails;
 } catch (error) {
   console.log({ error })
