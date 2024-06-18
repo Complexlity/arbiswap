@@ -37,6 +37,15 @@ const arbitrumClient = createPublicClient({
 const DEFAULT_TOKEN_CA = "0x912ce59144191c1204e64559fe8253a0e49e6548";
 const ETHEREUM_ADDRESS = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 const USDC_ADDRESS = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831";
+const USDT_ADDRESS = "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9"
+const BLOO_ADDRESS="0x13A7DeDb7169a17bE92B0E3C7C2315B46f4772B3"
+
+const shortcuts = {
+  usdc: USDC_ADDRESS,
+  usdt: USDT_ADDRESS,
+  arb: DEFAULT_TOKEN_CA,
+  bloo: BLOO_ADDRESS
+}
 const ethDetails = {
   tokenLogo: "https://i.ibb.co/Mg8Yd81/eth.png",
   tokenSymbol: "ETH",
@@ -60,6 +69,16 @@ type State = {
   sendAmount: number | null;
   receiveAmount: number | null;
 };
+
+function getTokenAddress(_input?: string) {
+  if(!_input) return _input
+  let input = _input.toLowerCase()
+  if (shortcuts.hasOwnProperty(input.toLowerCase())) {
+    //@ts-expect-error
+    return shortcuts[input]
+  }
+  else return input
+}
 
 export const app = new Frog<{ State: State }>({
   assetsPath: "/",
@@ -116,7 +135,7 @@ async function handleTokenDetails(
     // if (!token1 || !token2) throw new Error("Could not get token1 or token2 from moralis")
 
     if (!token1 || !token2) {
-      return invalidOrMissingCaError(c, method, "Unsupported Contract Address");
+      return invalidOrMissingCaError(c, method, "Unsupported Contract Address. Try just 'usdc' ");
     }
 
     token1.tokenSymbol = "ETH";
@@ -148,7 +167,7 @@ async function handleTokenDetails(
     [token1, token2] = await Promise.all([getTokenPrice(ca), getTokenPrice()]);
     // if(!token1 || !token2) throw new Error("Could not get token1 or token2 from moralis")
     if (!token1 || !token2)
-      return invalidOrMissingCaError(c, method, "Unsupported Contract Address");
+      return invalidOrMissingCaError(c, method, "Unsupported Contract Address. Try just 'usdc' ");
     token2.tokenSymbol = "ETH";
     console.log("I am here");
     newState = deriveState((previousState) => {
@@ -251,9 +270,9 @@ app.frame("/",  async (c: StartFrameContext) => {
 
 app.frame("/swap/start",  async (c) => {
   return c.res({
-    image: <S />,
+    image: <S m={"Shortcuts: usdc, usdt, arb, bloo"} />,
     intents: [
-      <TextInput placeholder="Token 1 CA" />,
+      <TextInput placeholder="Contract Address or Shortcut" />,
       <Button action="/swap/token1">Next ➡️</Button>,
       <Button.Reset>⬅️ Back</Button.Reset>,
     ],
@@ -263,10 +282,10 @@ app.frame("/swap/token1",  async (c) => {
   const { inputText, deriveState, buttonValue, previousState } = c;
   let state = previousState;
   if (buttonValue !== "back") {
-    const token1 = inputText;
+    const token1 = getTokenAddress(inputText);
     if (!token1) {
       return c.res({
-        image: <S m="Invalid Token Address" e={true} />,
+        image: <S m="Invalid Token Address. Try just 'usdc' " e={true} />,
         intents: [
           <TextInput placeholder="Token 1 CA" />,
           <Button action="/swap/token1">Next ➡️</Button>,
@@ -274,10 +293,11 @@ app.frame("/swap/token1",  async (c) => {
         ],
       });
     }
+
     const token1PriceData = await getTokenPrice(token1);
     if (!token1PriceData) {
       return c.res({
-        image: <S m="Unsupported Token Address" e={true} />,
+        image: <S m="Unsupported Token Address. Try just 'usdc' " e={true} />,
         intents: [
           <TextInput placeholder="Token 1 CA" />,
           <Button action="/swap/token1">Next ➡️</Button>,
@@ -303,11 +323,12 @@ app.frame("/swap/token1",  async (c) => {
   return c.res({
     image: (
       <S
+        m={"Shortcuts: usdc, usdt, arb, bloo"}
         t1={{ tokenLogo: state.token1!.logo, tokenSymbol: state.token1!.sym }}
       />
     ),
     intents: [
-      <TextInput placeholder="Token 2 CA" />,
+      <TextInput placeholder="Contract Address or Shortcut" />,
       <Button action="/swap/token2">Next ➡️</Button>,
       <Button action="/swap/start">⬅️ Back</Button>,
     ],
@@ -321,21 +342,21 @@ app.frame("/swap/token2",  async (c) => {
   let token2 = previousState.token2;
   if (!token1) {
     return c.res({
-      image: <S m="Invalid Token Address" e={true} />,
+      image: <S m="Invalid Token Address. Try 'usdc' " e={true} />,
       intents: [
-        <TextInput placeholder="Token 1 CA" />,
+        <TextInput placeholder="Contract Address or Shortcuts" />,
         <Button action="/swap/token1">Next ➡️</Button>,
         <Button.Reset>⬅️ Back</Button.Reset>,
       ],
     });
   }
   if (buttonValue !== "back") {
-    let token2 = inputText;
+    let token2 = getTokenAddress(inputText);
     if (!token2) {
       return c.res({
         image: (
           <S
-            m={"Invalid Token Address"}
+            m={"Invalid Token Address. Try just 'usdc' "}
             t1={{
               tokenLogo: token1.logo,
               tokenSymbol: token1.sym,
@@ -343,7 +364,7 @@ app.frame("/swap/token2",  async (c) => {
           />
         ),
         intents: [
-          <TextInput placeholder="Token 2 CA" />,
+          <TextInput placeholder="Contract Address or Shortcuts" />,
           <Button action="/swap/token2">Next ➡️</Button>,
           <Button action="/swap/start">⬅️ Back</Button>,
         ],
@@ -354,13 +375,13 @@ app.frame("/swap/token2",  async (c) => {
       return c.res({
         image: (
           <S
-            m="Unsupported Token Address"
+            m="Unsupported Token Address. Try just 'usdc' "
             e={true}
             t1={{ tokenLogo: token1.logo, tokenSymbol: token1.sym }}
           />
         ),
         intents: [
-          <TextInput placeholder="Token 2 CA" />,
+          <TextInput placeholder="Contract Address or Shortcuts" />,
           <Button action="/swap/token2">Next ➡️</Button>,
           <Button action="/swap/start">⬅️ Back</Button>,
         ],
@@ -386,13 +407,13 @@ app.frame("/swap/token2",  async (c) => {
     return c.res({
       image: (
         <S
-          m="Invalid Token Address"
+          m="Invalid Token Address. Try just 'usdc' "
           e={true}
           t1={{ tokenLogo: token1.logo, tokenSymbol: token1.sym }}
         />
       ),
       intents: [
-        <TextInput placeholder="Token 2 CA" />,
+        <TextInput placeholder="Contract Address or Shortcuts" />,
         <Button action="/swap/token2">Next ➡️</Button>,
         <Button action="/swap/start">⬅️ Back</Button>,
       ],
@@ -898,9 +919,9 @@ app.frame("/methods", async (c) => {
 
   if (buttonValue == "from") {
     return c.res({
-      image: <S m={"Leave blank for $ARB"} t1={ethDetails} />,
+      image: <S m={"Shortcuts: usdc, usdt, arb, bloo"} t1={ethDetails} />,
       intents: [
-        <TextInput placeholder="Enter Contract Address e.g: 0x.." />,
+        <TextInput placeholder="Contract Address or Shortcut" />,
         <Button value="from" action="/token">
           Next ➡️
         </Button>,
@@ -910,9 +931,9 @@ app.frame("/methods", async (c) => {
   }
 
   return c.res({
-    image: <S m={"Leave blank for $ARB"} t2={ethDetails} />,
+    image: <S m={"Shortcuts: usdc, usdt, arb, bloo"} t2={ethDetails} />,
     intents: [
-      <TextInput placeholder="Enter Token Address e.g: 0x.." />,
+      <TextInput placeholder="Contract Address or Shortcut" />,
       <Button action="/token" value="to">
         Next ➡️
       </Button>,
@@ -927,7 +948,7 @@ function getHeading(method: string) {
 
 app.frame("/token",  async (c: StartFrameContext) => {
   const { inputText, buttonValue } = c;
-  let ca = inputText;
+  let ca = getTokenAddress(inputText);
   let method = buttonValue;
 
   if (!method) method = "from";
@@ -940,7 +961,7 @@ app.frame("/token",  async (c: StartFrameContext) => {
 app.frame("/exact_token/:ca",  async (c: StartFrameContext) => {
   let { buttonValue } = c;
   let method = "from";
-  let ca = c.req.param("ca");
+  let ca = getTokenAddress(c.req.param("ca"));
 
   if (buttonValue && buttonValue.includes("-")) {
     method = buttonValue.split("-")[0].trim();
@@ -1329,7 +1350,7 @@ type StartTransactionContext = TransactionContext<
 
 app.transaction(
   "/tx/:method/:ca/:amount",
-  
+
   async (c: StartTransactionContext) => {
     const method = c.req.param("method");
     const ca = c.req.param("ca");
