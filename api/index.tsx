@@ -25,6 +25,7 @@ import { kvStore, nanoid } from "../utils/services.js";
 import { TokenDetails, getTokenPrice } from "../utils/token.js";
 import { ZeroxSwapPriceData, ZeroxSwapQuoteOrder } from "../utils/types.js";
 import { MiddlewareHandler } from "frog";
+import { japanese } from "viem/accounts";
 // Uncomment to use Edge Runtime.
 // export const config = {
 //   runtime: 'edge',
@@ -72,7 +73,7 @@ type State = {
 
 function getTokenAddress(_input?: string) {
   if(!_input) return _input
-  let input = _input.toLowerCase()
+  let input = _input.toLowerCase().trim()
   if (shortcuts.hasOwnProperty(input.toLowerCase())) {
     //@ts-expect-error
     return shortcuts[input]
