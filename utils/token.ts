@@ -1,28 +1,26 @@
 import { EvmChain } from "@moralisweb3/common-evm-utils";
 import Moralis from "moralis";
-import { config } from "dotenv"
-import fs from 'fs'
+import { config } from "dotenv";
+// import fs from 'fs'
 
-config()
+config();
 
 export interface TokenDetails {
-  tokenName:               string;
-  tokenSymbol:             string;
-  tokenLogo:               string;
-  tokenDecimals:           string;
-  nativePrice:             string;
-  usdPrice:                number;
-  usdPriceFormatted:       string;
-  exchangeName:            string;
-  exchangeAddress:         string;
-  tokenAddress:            string;
+  tokenName: string;
+  tokenSymbol: string;
+  tokenLogo: string;
+  tokenDecimals: string;
+  nativePrice: string;
+  usdPrice: number;
+  usdPriceFormatted: string;
+  exchangeName: string;
+  exchangeAddress: string;
+  tokenAddress: string;
   priceLastChangedAtBlock: string;
-  possibleSpam:            boolean;
-  verifiedContract:        boolean;
-  "24hrPercentChange":     string;
+  possibleSpam: boolean;
+  verifiedContract: boolean;
+  "24hrPercentChange": string;
 }
-
-
 
 export function formatCurrency(
   input: number,
@@ -51,20 +49,18 @@ export function formatCurrency(
   return inputStr;
 }
 
-export async function getTokenPrice(
-  contractAddress?: string ,
-) {
-  let eth = false
+export async function getTokenPrice(contractAddress?: string) {
+  let eth = false;
   let chain = EvmChain.ARBITRUM;
 
   if (!contractAddress) {
-    eth = true
-  contractAddress = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
-    chain = EvmChain.ETHEREUM
+    eth = true;
+    contractAddress = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
+    chain = EvmChain.ETHEREUM;
   }
-  console.log({contractAddress, chain: chain.name})
+  console.log({ contractAddress, chain: chain.name });
 
-    const moralisApiKey = process.env.MORALIS_API_KEY;
+  const moralisApiKey = process.env.MORALIS_API_KEY;
   if (!moralisApiKey) {
     throw new Error("Moralis api key missing");
   }
@@ -76,37 +72,39 @@ export async function getTokenPrice(
       // ...and any other configuration
     });
   }
-try {
+  try {
+    const response = await Moralis.EvmApi.token.getTokenPrice({
+      chain,
+      include: "percent_change",
+      address: contractAddress,
+    });
 
+    const priceData = response.result;
 
-  const response = await Moralis.EvmApi.token.getTokenPrice({
-    chain,
-    include: "percent_change",
-    address: contractAddress,
-  });
-
-  const priceData = response.result;
-
-  if(eth) priceData.tokenLogo = "https://i.ibb.co/Mg8Yd81/eth.png";
-  // fs.writeFileSync('token.json', JSON.stringify(priceData))
-  return priceData as unknown as TokenDetails;
-} catch (error) {
-  console.log({ error })
-  return null
+    if (eth) priceData.tokenLogo = "https://i.ibb.co/Mg8Yd81/eth.png";
+    // fs.writeFileSync('token.json', JSON.stringify(priceData))
+    return priceData as unknown as TokenDetails;
+  } catch (error) {
+    console.log({ error });
+    return null;
+  }
 }
+export function getEthPrice(
+  nativePrice: string,
+  usdPrice: number,
+  ethAmount: number
+) {
+  const nativePriceInETH = BigInt(nativePrice) / BigInt("1000000000000000000");
+  const ethAmountInUsd =
+    (usdPrice / Number(nativePriceInETH)) * 1e18 * ethAmount;
+  return ethAmountInUsd;
 }
 
-export function convertTokenAmountToUSD(numberOfTokens: number, tokenPriceData: any) {
-  if(!tokenPriceData) return 0
+export function convertTokenAmountToUSD(
+  numberOfTokens: number,
+  tokenPriceData: any
+) {
+  if (!tokenPriceData) return 0;
   const amount = numberOfTokens * tokenPriceData.usdPrice;
   return amount;
 }
-
-export function getEthPrice(nativePrice: string, usdPrice: number, ethAmount: number){
-  const nativePriceInETH = BigInt(nativePrice) / BigInt("1000000000000000000");
-  const ethAmountInUsd = (usdPrice / Number(nativePriceInETH)) * 1e18 * ethAmount
-  return ethAmountInUsd
-}
-
-
-

@@ -1,7 +1,7 @@
 //@ts-nocheck
-import { Frog } from 'frog'
-import { Child, JSXNode } from 'hono/jsx'
-import lz from 'lz-string'
+import type { Frog } from "frog";
+import type { Child, JSXNode } from "hono/jsx";
+import lz from "lz-string";
 
 const compressedImage = lz.compressToEncodedURIComponent(
   JSON.stringify(
@@ -12,11 +12,8 @@ const compressedImage = lz.compressToEncodedURIComponent(
           flexDirection: "column",
           height: "100%",
           width: "100%",
-		}}
-				
-      >
-
-      </div>,
+        }}
+      ></div>,
       {
         assetsUrl,
         ui: {
@@ -33,7 +30,6 @@ const compressedImage = lz.compressToEncodedURIComponent(
     )
   )
 );
-
 
 async function parseImage(
   node_: Child,
@@ -92,7 +88,6 @@ async function parseImage(
 
   return node;
 }
-
 
 function parsePath(path_: string): string {
   let path = path_.split("?")[0]!;
